@@ -7,41 +7,44 @@
                 theme="dark"
                 mode="horizontal"
                 @click="menuClick"
-                :defaultSelectedKeys="['1']"
+                :defaultSelectedKeys="['3']"
                 :style="{ lineHeight: '64px' }"
         >
-          <a-menu-item key="1">连接管理</a-menu-item>
-          <a-menu-item key="2">数据信息</a-menu-item>
-          <a-menu-item key="3">性能监控</a-menu-item>
+          <a-menu-item key="1"><a-icon type="api" />连接管理</a-menu-item>
+          <a-menu-item key="2"><a-icon type="database" />数据信息</a-menu-item>
+          <a-menu-item key="3"><a-icon type="dashboard" />性能监控</a-menu-item>
           <a-sub-menu key="sub1">
-            <span slot="title"><a-icon type="setting" /><span>切换Redis</span></span>
+            <span slot="title"><a-icon type="ordered-list" /><span>切换Redis</span></span>
             <a-menu-item v-for="item in containers" :key="item.value">{{item.label}}</a-menu-item>
           </a-sub-menu>
+          <a-menu-item key="redis_ip" disabled>
+            <a-icon type="info-circle" />{{redis_ip}}
+          </a-menu-item>
         </a-menu>
       </a-layout-header>
       <a-layout-content style="padding: 0 50px">
-<!--        <div v-if="memu_key=='2'">-->
-<!--          hello-->
-<!--        </div>-->
+        <div v-show="memu_key=='3'">
+          <a-row>
+            <a-col :span="12">
+              <div ref="chart" style="height:46vh; width:48vw"></div>
+            </a-col>
+            <a-col :span="12">
+              <div ref="chart1" style="height:46vh; width:48vw"></div>
+            </a-col>
+          </a-row>
+          <a-row>
+            <a-col :span="12">
+              <div ref="chart2" style="height:46vh; width:48vw"></div>
+            </a-col>
+            <a-col :span="12">
+              <div ref="chart3" style="height:46vh; width:48vw"></div>
+            </a-col>
+          </a-row>
+        </div>
 <!--        <a-select :value="redis_db" @change="(value)=>{redis_db=value}" style="width: 120px">-->
 <!--          <a-select-option v-for="item in dbs" :value="item.value" v-bind:key="item.value">{{item.label}}</a-select-option>-->
 <!--        </a-select>-->
-        <a-row>
-          <a-col :span="12">
-            <div ref="chart" style="height:46vh; width: 100%"></div>
-          </a-col>
-          <a-col :span="12">
-            <div ref="chart1" style="height:46vh; width: 100%"></div>
-          </a-col>
-        </a-row>
-        <a-row>
-          <a-col :span="12">
-            <div ref="chart2" style="height:46vh; width: 100%"></div>
-          </a-col>
-          <a-col :span="12">
-            <div ref="chart3" style="height:46vh; width: 100%"></div>
-          </a-col>
-        </a-row>
+
       </a-layout-content>
     </a-layout>
   </div>
@@ -75,7 +78,12 @@ Date.prototype.Format = function(fmt){
   return fmt;
 };
 
-let server = '47.52.140.130:8080'
+const wsProtocol = location.protocol === 'http:' ? 'ws:' : 'wss:'
+let base_url = location.origin, ws_url = `${wsProtocol}//${location.host}/ws`
+
+// let server = '47.52.140.130:8080'
+// let base_url = `http://${server}`
+// let ws_url = `ws://${server}/ws`
 
 export default {
   name: "app",
@@ -83,8 +91,8 @@ export default {
     return {
       // eslint-disable-next-line no-console
       log: console.log,
-      url: `http://${server}`,
-      ws_url: `ws://${server}/ws`,
+      url: base_url,
+      ws_url: ws_url,
       redis_name: "",
       redis_ip: "",
       redis_db: 0,
@@ -114,12 +122,12 @@ export default {
         grid: [{
           left: 50,
           right: 50,
-          height: '35%'
+          height: '32%'
         }, {
           left: 50,
           right: 50,
-          top: '55%',
-          height: '35%'
+          top: '60%',
+          height: '32%'
         }],
         xAxis: [
           {
@@ -254,18 +262,18 @@ export default {
     menuClick(value) {
       if (value.key.length < 5) {
         this.memu_key = value.key
-        if (value.key == 3) {
-          this.websocket.send(JSON.stringify({
-            'type': 1, 'ip': this.redis_ip
-          }));
-        }
       } else {
         this.redis_ip = value.key
-        axios.get(this.url + '/containers?method=info&ip=' + this.redis_ip)
-          .then(result => {
-            let data = result.data.data;
-            this.log(data)
-          })
+        // axios.get(this.url + '/containers?method=info&ip=' + this.redis_ip)
+        //   .then(result => {
+        //     let data = result.data.data;
+        //     this.log(data)
+        //   })
+      }
+      if (this.memu_key == 3) {
+        this.websocket.send(JSON.stringify({
+          'type': 1, 'ip': this.redis_ip
+        }));
       }
     },
     onChange(value) {
@@ -273,7 +281,9 @@ export default {
     },
     receiveData(e) {
       const redata = JSON.parse(e.data);
-      // const ip = redata.msg
+      const ip = redata.msg
+      if (ip !== this.redis_ip) return
+
       const data = JSON.parse(redata.data)
       this.log(data)
 
