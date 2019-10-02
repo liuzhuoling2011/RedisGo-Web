@@ -3,24 +3,39 @@
     <a-layout id="components-layout-demo-top" class="layout">
       <a-layout-header>
         <div class="logo" />
-        <a-menu
-                theme="dark"
-                mode="horizontal"
-                @click="menuClick"
-                :defaultSelectedKeys="['3']"
-                :style="{ lineHeight: '64px' }"
-        >
-          <a-menu-item key="1"><a-icon type="api" />连接管理</a-menu-item>
-          <a-menu-item key="2"><a-icon type="database" />数据信息</a-menu-item>
-          <a-menu-item key="3"><a-icon type="dashboard" />性能监控</a-menu-item>
-          <a-sub-menu key="sub1">
-            <span slot="title"><a-icon type="ordered-list" /><span>切换Redis</span></span>
-            <a-menu-item v-for="item in containers" :key="item.value">{{item.label}}</a-menu-item>
-          </a-sub-menu>
-          <a-menu-item key="redis_info">
-            <a-icon type="info-circle" />{{redis_ip}}
-          </a-menu-item>
-        </a-menu>
+        <a-row>
+          <a-col :span="16">
+            <a-menu
+                    theme="dark"
+                    mode="horizontal"
+                    @click="menuClick"
+                    :defaultSelectedKeys="['redis_info']"
+                    :style="{ lineHeight: '64px' }"
+            >
+              <a-menu-item key="redis_info"><a-icon type="info-circle" />系统详情</a-menu-item>
+              <a-menu-item key="3"><a-icon type="dashboard" />性能监控</a-menu-item>
+              <a-menu-item key="2"><a-icon type="database" />数据信息</a-menu-item>
+            </a-menu>
+          </a-col>
+          <a-col :span="5">
+            <a-row type="flex" justify="end">
+              <a-col :span="10">
+                <a-select :value="redis_ip" style="width: 150px" @change="change_redis">
+                  <a-select-option v-for="item in containers" :value="item.ip" v-bind:key="item.ip">{{item.name}}</a-select-option>
+                </a-select>
+              </a-col>
+              <a-col :span="2" :offset="1">
+                <a-dropdown>
+                  <a-icon class="ant-dropdown-link" type="setting" style="color: #ffffff; font-size: 28px; padding-top: 17px"/>
+                  <a-menu slot="overlay" @click="settingClick">
+                    <a-menu-item key="about"><a-icon type="info-circle"/>关于程序</a-menu-item>
+                    <a-menu-item key="edit"><a-icon type="edit"/>连接管理</a-menu-item>
+                  </a-menu>
+                </a-dropdown>
+              </a-col>
+            </a-row>
+          </a-col>
+        </a-row>
       </a-layout-header>
       <a-layout-content style="padding: 0 50px">
         <div v-show="memu_key=='3'">
@@ -45,13 +60,17 @@
           <a-row>
             <a-col :span="16">
               <a-divider>高时延日志</a-divider>
-              <a-table :columns="logs_columns" :dataSource="logs_data" bordered>
+              <a-table rowKey="id" :columns="logs_columns" :loading="logs_loading" :dataSource="logs_data" :pagination="false" :scroll="{ y: 310 }" style="word-break: break-all">
                 <template slot="time" slot-scope="text">
                   {{new Date(text*1000).Format("yyyy-MM-dd HH:mm:ss")}}
                 </template>
               </a-table>
               <a-divider>客户端列表</a-divider>
-              <a-table :columns="clients_columns" :dataSource="clients_data" bordered></a-table>
+              <a-table rowKey="id" :columns="clients_columns" :loading="clients_loading" :dataSource="clients_data" :pagination="{ pageSize: 50 }" :scroll="{ y: 268 }" >
+                <template slot="time" slot-scope="text">
+                  {{formatSeconds(text)}}
+                </template>
+              </a-table>
             </a-col>
             <a-col :span="8">
               <a-collapse accordion activeKey="1" style="font-size: 15px">
@@ -121,22 +140,22 @@
                 <a-collapse-panel key="7">
                   <template slot="header"><a-icon type="database" /> 键值信息</template>
                   <a-card>
-                    <a-card-grid class="gridcard33">DB0: {{format_db_nums(info_data.db0)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB1: {{format_db_nums(info_data.db1)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB2: {{format_db_nums(info_data.db2)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB3: {{format_db_nums(info_data.db3)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB4: {{format_db_nums(info_data.db4)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB5: {{format_db_nums(info_data.db5)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB6: {{format_db_nums(info_data.db6)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB7: {{format_db_nums(info_data.db7)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB8: {{format_db_nums(info_data.db8)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB9: {{format_db_nums(info_data.db9)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB10: {{format_db_nums(info_data.db10)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB11: {{format_db_nums(info_data.db11)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB12: {{format_db_nums(info_data.db12)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB13: {{format_db_nums(info_data.db13)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB14: {{format_db_nums(info_data.db14)}}</a-card-grid>
-                    <a-card-grid class="gridcard33">DB15: {{format_db_nums(info_data.db15)}}</a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db0)>0">DB0: <a-tag color="green">{{format_db_nums(info_data.db0)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db1)>0">DB1: <a-tag color="green">{{format_db_nums(info_data.db1)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db2)>0">DB2: <a-tag color="green">{{format_db_nums(info_data.db2)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db3)>0">DB3: <a-tag color="green">{{format_db_nums(info_data.db3)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db4)>0">DB4: <a-tag color="green">{{format_db_nums(info_data.db4)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db5)>0">DB5: <a-tag color="green">{{format_db_nums(info_data.db5)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db6)>0">DB6: <a-tag color="green">{{format_db_nums(info_data.db6)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db7)>0">DB7: <a-tag color="green">{{format_db_nums(info_data.db7)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db8)>0">DB8: <a-tag color="green">{{format_db_nums(info_data.db8)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db9)>0">DB9: <a-tag color="green">{{format_db_nums(info_data.db9)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db10)>0">DB10: <a-tag color="green">{{format_db_nums(info_data.db10)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db11)>0">DB11: <a-tag color="green">{{format_db_nums(info_data.db11)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db12)>0">DB12: <a-tag color="green">{{format_db_nums(info_data.db12)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db13)>0">DB13: <a-tag color="green">{{format_db_nums(info_data.db13)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db14)>0">DB14: <a-tag color="green">{{format_db_nums(info_data.db14)}}</a-tag></a-card-grid>
+                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db15)>0">DB15: <a-tag color="green">{{format_db_nums(info_data.db15)}}</a-tag></a-card-grid>
                   </a-card>
                 </a-collapse-panel>
               </a-collapse>
@@ -149,6 +168,58 @@
 
       </a-layout-content>
     </a-layout>
+    <a-drawer
+            width=640
+            placement="right"
+            @close="()=>{visible = false}"
+            :visible="visible"
+    >
+      <div slot="title" >Redis连接管理 <a-divider type="vertical" /> <a-button icon="plus" style="color: #42b983" @click="add_container">添加连接</a-button></div>
+      <a-card>
+        <a-card-grid class="gridcard100" v-for="item in containers" v-bind:key="item.ip">
+          名称: <a-tag color="green">{{item.name}}</a-tag> <a-divider type="vertical" />
+          IP: <a-tag color="blue">{{item.ip}}</a-tag> <a-divider type="vertical" />
+          端口: {{item.port}} <a-divider type="vertical" />
+          密码: {{item.password}} <a-divider type="vertical" />
+          DB: {{item.db}} <a-divider type="vertical" />
+          <a-button shape="circle" icon="edit" @click="edit_container(item)"/>
+          <a-button shape="circle" icon="delete" type="danger" @click="delete_container(item.value)"/>
+        </a-card-grid>
+      </a-card>
+    </a-drawer>
+    <a-drawer
+            :title="children_drawl_name"
+            width=320
+            @close="()=>{visible_children = false}"
+            :visible="visible_children"
+    >
+      <a-input placeholder="连接IP" v-if="children_drawl_name=='修改连接'" size="large" v-model="container_tmp.ip" disabled>
+        <a-icon slot="prefix" type="api" />
+        <a-icon v-if="container_tmp.ip" slot="suffix" type="close-circle" @click="()=>{container_tmp.ip = ''}" />
+      </a-input>
+      <a-input placeholder="连接IP" v-else size="large" v-model="container_tmp.ip">
+        <a-icon slot="prefix" type="api" />
+        <a-icon v-if="container_tmp.ip" slot="suffix" type="close-circle" @click="()=>{container_tmp.ip = ''}" />
+      </a-input>
+      <a-input placeholder="连接名称" size="large" v-model="container_tmp.name" style="margin-top: 10px">
+        <a-icon slot="prefix" type="user" />
+        <a-icon v-if="container_tmp.name" slot="suffix" type="close-circle" @click="()=>{container_tmp.name = ''}" />
+      </a-input>
+      <a-input placeholder="密码" size="large" v-model="container_tmp.password" style="margin-top: 10px">
+        <a-icon slot="prefix" type="warning" />
+        <a-icon v-if="container_tmp.password" slot="suffix" type="close-circle" @click="()=>{container_tmp.password = ''}" />
+      </a-input>
+      <a-input placeholder="端口" size="large" v-model="container_tmp.port" style="margin-top: 10px">
+        <a-icon slot="prefix" type="appstore" />
+        <a-icon v-if="container_tmp.port" slot="suffix" type="close-circle" @click="()=>{container_tmp.port = ''}" />
+      </a-input>
+      <a-input placeholder="DB" size="large" v-model="container_tmp.db" style="margin-top: 10px">
+        <a-icon slot="prefix" type="hdd" />
+        <a-icon v-if="container_tmp.db" slot="suffix" type="close-circle" @click="()=>{container_tmp.db = ''}" />
+      </a-input>
+      <a-button type="primary" style="margin-top: 10px" v-if="children_drawl_name=='修改连接'" @click="upload_edit" :loading="visible_children_loading">确认</a-button>
+      <a-button type="primary" style="margin-top: 10px" v-else @click="upload_add" :loading="visible_children_loading">确认</a-button>
+    </a-drawer>
   </div>
 </template>
 
@@ -180,8 +251,6 @@ Date.prototype.Format = function(fmt){
   return fmt;
 };
 
-
-
 const wsProtocol = location.protocol === 'http:' ? 'ws:' : 'wss:'
 let base_url = location.origin, ws_url = `${wsProtocol}//${location.host}/ws`
 
@@ -202,44 +271,61 @@ export default {
       redis_ip: "",
       redis_db: 0,
       containers: [],
+      container_tmp: {ip:'', name:'', password:'', port:6379, db:0, status:0},
       dbs: [],
+      visible: false,
+      visible_children: false,
+      visible_children_loading: false,
+      children_drawl_name: '新增连接',
       memu_key: '',
       time_data: [],
       info_data: {},
+      logs_loading: false,
       logs_data: [],
       logs_columns: [{
         title: 'ID',
         dataIndex: 'id',
+        width: 100,
       }, {
         title: '记录时间',
         dataIndex: 'time',
+        width: 200,
         scopedSlots: { customRender: 'time' },
       }, {
         title: '执行时间(微秒)',
         dataIndex: 'time_used',
+        width: 150,
       }, {
         title: '日志详情',
         dataIndex: 'msg',
       }],
+      clients_loading: false,
       clients_data: [],
       clients_columns: [{
         title: 'ID',
         dataIndex: 'id',
+        width: 150,
       }, {
         title: '主机',
         dataIndex: 'addr',
+        width: 200,
       }, {
-        title: '连接时长(秒)',
+        title: '连接时长',
         dataIndex: 'age',
+        scopedSlots: { customRender: 'time' },
+        width: 150,
       }, {
         title: '数据库ID',
         dataIndex: 'db',
+        width: 150,
       }, {
         title: '订阅频道',
         dataIndex: 'sub',
+        width: 150,
       }, {
         title: '最近执行',
         dataIndex: 'cmd',
+        width: 150,
       }],
       websocket: null,
       myChart: null,
@@ -400,37 +486,122 @@ export default {
   },
   methods: {
     menuClick(value) {
-      if (value.key.length < 5) {
-        this.memu_key = value.key
-      } else if (value.key === 'redis_info') {
-        this.memu_key = value.key
-        axios.get(this.url + '/containers?method=info&ip=' + this.redis_ip)
-          .then(result => {
-            this.info_data = result.data.data;
-          })
-        axios.get(this.url + '/containers?method=logs&ip=' + this.redis_ip)
-          .then(result => {
-            this.logs_data = result.data.data;
-          })
-        axios.get(this.url + '/containers?method=clients&ip=' + this.redis_ip)
-          .then(result => {
-            this.clients_data = result.data.data;
-          })
+      this.memu_key = value.key
+      if (value.key === 'redis_info') {
+        this.get_redis_infos()
+      } else if (this.memu_key == 3) {
+        this.websocket.send(JSON.stringify({
+          'type': 1, 'ip': this.redis_ip
+        }));
       } else {
-        this.redis_ip = value.key
+        this.$message.warning('暂未实现, 请耐心等待')
       }
+    },
+    settingClick(value) {
+      if (value.key === 'about') {
+        this.$message.success('RedisGo Web是为更好的监控/管理内网的Redis而倾心打造')
+      } else if (value.key === 'edit') {
+        this.visible = true
+      }
+    },
+    change_redis(val) {
+      this.redis_ip = val
       if (this.memu_key == 3) {
         this.websocket.send(JSON.stringify({
           'type': 1, 'ip': this.redis_ip
         }));
+      } else if (this.memu_key === 'redis_info') {
+        this.get_redis_infos()
       }
     },
-    onChange(value) {
-      this.log(`selected ${value}`)
+    get_redis_infos() {
+      this.get_info()
+      this.get_logs()
+      this.get_clients()
+    },
+    get_info() {
+      axios.get(this.url + '/containers?method=info&ip=' + this.redis_ip)
+        .then(result => {
+          this.info_data = result.data.data;
+        })
+    },
+    get_logs() {
+      this.logs_loading = true
+      axios.get(this.url + '/containers?method=logs&ip=' + this.redis_ip)
+        .then(result => {
+          this.logs_data = result.data.data;
+          this.logs_loading = false
+        })
+    },
+    get_clients() {
+      this.clients_loading = true
+      axios.get(this.url + '/containers?method=clients&ip=' + this.redis_ip)
+        .then(result => {
+          this.clients_data = result.data.data;
+          this.clients_loading = false
+        })
+    },
+    upload_add() {
+      this.visible_children_loading = true
+      axios.get(this.url + `/containers?method=add&ip=${this.container_tmp.ip}&name=${this.container_tmp.name}&password=${this.container_tmp.password}&port=${this.container_tmp.port}&db=${this.container_tmp.db}`)
+        .then(result => {
+          this.visible_children_loading = false
+          let res = result.data
+          if (res.code != 0) {
+            this.$message.error(res.msg)
+          } else {
+            this.containers[this.container_tmp.ip] = res.data
+            this.$message.success('添加成功')
+            this.visible_children = false
+          }
+        })
+    },
+    upload_edit() {
+      this.visible_children_loading = true
+      axios.get(this.url + `/containers?method=edit&ip=${this.container_tmp.ip}&name=${this.container_tmp.name}&password=${this.container_tmp.password}&port=${this.container_tmp.port}&db=${this.container_tmp.db}`)
+        .then(result => {
+          this.visible_children_loading = false
+          let res = result.data
+          if (res.code != 0) {
+            this.$message.error(res.msg)
+          } else {
+            this.containers[this.container_tmp.ip] = res.data
+            this.$message.success('修改成功')
+            this.visible_children = false
+          }
+        })
+    },
+    add_container() {
+      this.visible_children = true
+      this.children_drawl_name = '新增连接'
+      this.container_tmp.ip = ''
+      this.container_tmp.password = ''
+      this.container_tmp.name = ''
+      this.container_tmp.port = 6379
+      this.container_tmp.db = 0
+    },
+    edit_container(item) {
+      this.visible_children = true
+      this.children_drawl_name = '修改连接'
+      this.container_tmp.ip = item.ip
+      this.container_tmp.password = item.password
+      this.container_tmp.name = item.name
+      this.container_tmp.port = item.port
+      this.container_tmp.db = item.db
+    },
+    delete_container(ip) {
+      axios.get(this.url + '/containers?method=delete&ip=' + ip)
+        .then(result => {
+          let code = result.data.code;
+          if (code == 0) {
+            this.log(code)
+          }
+        })
     },
     circle_push(arr, val) {
       arr.push(val)
-      if (arr.length > 30 * 60 * 60) {
+      // 保留15分钟的数据
+      if (arr.length > 15 * 60 * 60) {
         arr.shift()
       }
       return arr
@@ -509,14 +680,12 @@ export default {
       let data = result.data.data;
       for (let c in data) {
         if (this.redis_ip === "") {
-          this.redis_ip = data[c]["Ip"];
-          this.redis_name = data[c]["Name"];
+          this.redis_ip = data[c]["ip"];
+          this.redis_name = data[c]["name"];
         }
-        this.containers.push({
-          label: data[c]["Name"],
-          value: data[c]["Ip"]
-        });
       }
+      this.containers = data
+      this.menuClick({key:'redis_info'})
     });
 
     let websocket = new WebSocket(this.ws_url)
@@ -552,13 +721,19 @@ export default {
     margin: 16px 24px 16px 0;
     float: left;
   }
-
+  .ant-table-header::-webkit-scrollbar {
+    background-color: transparent;
+  }
   .gridcard {
     width: 50%;
     textAlign: 'left';
   }
-  .gridcard33 {
-    width: 20%;
+  .gridcard25 {
+    width: 25%;
+    textAlign: 'left';
+  }
+  .gridcard100 {
+    width: 100%;
     textAlign: 'left';
   }
 </style>
