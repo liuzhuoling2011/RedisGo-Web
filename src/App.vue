@@ -58,7 +58,7 @@
         </div>
         <div v-show="memu_key=='redis_info'">
           <a-row>
-            <a-col :span="16">
+            <a-col :span="16" style="padding-right: 10px">
               <a-divider>高时延日志</a-divider>
               <a-table rowKey="id" :columns="logs_columns" :loading="logs_loading" :dataSource="logs_data" :pagination="false" :scroll="{ y: 310 }" style="word-break: break-all">
                 <template slot="time" slot-scope="text">
@@ -169,27 +169,27 @@
       </a-layout-content>
     </a-layout>
     <a-drawer
-            width=640
+            width=560
             placement="right"
             @close="()=>{visible = false}"
             :visible="visible"
     >
       <div slot="title" >Redis连接管理 <a-divider type="vertical" /> <a-button icon="plus" style="color: #42b983" @click="add_container">添加连接</a-button></div>
       <a-card>
-        <a-card-grid class="gridcard100" v-for="item in containers" v-bind:key="item.ip">
+        <a-card-grid class="gridcard100" v-for="(item, key) in containers" v-bind:key="key">
           名称: <a-tag color="green">{{item.name}}</a-tag> <a-divider type="vertical" />
           IP: <a-tag color="blue">{{item.ip}}</a-tag> <a-divider type="vertical" />
           端口: {{item.port}} <a-divider type="vertical" />
+          DB: {{item.db}} <br/><br/>
           密码: {{item.password}} <a-divider type="vertical" />
-          DB: {{item.db}} <a-divider type="vertical" />
           <a-button shape="circle" icon="edit" @click="edit_container(item)"/>
-          <a-button shape="circle" icon="delete" type="danger" @click="delete_container(item.value)"/>
+          <a-button shape="circle" icon="delete" type="danger" @click="delete_container(item.ip)"/>
         </a-card-grid>
       </a-card>
     </a-drawer>
     <a-drawer
             :title="children_drawl_name"
-            width=320
+            width=280
             @close="()=>{visible_children = false}"
             :visible="visible_children"
     >
@@ -197,7 +197,7 @@
         <a-icon slot="prefix" type="api" />
         <a-icon v-if="container_tmp.ip" slot="suffix" type="close-circle" @click="()=>{container_tmp.ip = ''}" />
       </a-input>
-      <a-input placeholder="连接IP" v-else size="large" v-model="container_tmp.ip">
+      <a-input placeholder="连接IP" v-else size="large" v-model="container_tmp.ip" @change="()=>{container_tmp.name = container_tmp.ip}">
         <a-icon slot="prefix" type="api" />
         <a-icon v-if="container_tmp.ip" slot="suffix" type="close-circle" @click="()=>{container_tmp.ip = ''}" />
       </a-input>
@@ -251,13 +251,13 @@ Date.prototype.Format = function(fmt){
   return fmt;
 };
 
-const wsProtocol = location.protocol === 'http:' ? 'ws:' : 'wss:'
-let base_url = location.origin, ws_url = `${wsProtocol}//${location.host}/ws`
+// const wsProtocol = location.protocol === 'http:' ? 'ws:' : 'wss:'
+// let base_url = location.origin, ws_url = `${wsProtocol}//${location.host}/ws`
 
 // let server = '47.52.140.130:8080'
-// let server = '127.0.0.1:51299'
-// let base_url = `http://${server}`
-// let ws_url = `ws://${server}/ws`
+let server = '127.0.0.1:51299'
+let base_url = `http://${server}`
+let ws_url = `ws://${server}/ws`
 
 export default {
   name: "app",
@@ -270,7 +270,7 @@ export default {
       redis_name: "",
       redis_ip: "",
       redis_db: 0,
-      containers: [],
+      containers: {},
       container_tmp: {ip:'', name:'', password:'', port:6379, db:0, status:0},
       dbs: [],
       visible: false,
@@ -594,7 +594,9 @@ export default {
         .then(result => {
           let code = result.data.code;
           if (code == 0) {
-            this.log(code)
+            delete this.containers[ip]
+            this.$forceUpdate()
+            this.$message.success('成功删除Redis连接');
           }
         })
     },
@@ -684,8 +686,12 @@ export default {
           this.redis_name = data[c]["name"];
         }
       }
-      this.containers = data
-      this.menuClick({key:'redis_info'})
+      if (this.redis_ip === "") {
+        this.$message.error('未检测到有效的Redis连接, 请在设置中添加并刷新页面', 10);
+      } else {
+        this.containers = data
+        this.menuClick({key:'redis_info'})
+      }
     });
 
     let websocket = new WebSocket(this.ws_url)
