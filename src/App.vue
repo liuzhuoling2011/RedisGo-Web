@@ -4,17 +4,18 @@
       <a-layout-header>
         <div class="logo" />
         <a-row>
-          <a-col :span="16">
+          <a-col :span="17">
             <a-menu
                     theme="dark"
                     mode="horizontal"
                     @click="menuClick"
-                    :defaultSelectedKeys="['redis_info']"
+                    :defaultSelectedKeys="['redis_pubsub']"
                     :style="{ lineHeight: '64px' }"
             >
               <a-menu-item key="redis_info"><a-icon type="info-circle" />系统详情</a-menu-item>
-              <a-menu-item key="3"><a-icon type="dashboard" />性能监控</a-menu-item>
-              <a-menu-item key="2"><a-icon type="database" />数据信息</a-menu-item>
+              <a-menu-item key="redis_monitor"><a-icon type="dashboard" />性能监控</a-menu-item>
+<!--              <a-menu-item key="2"><a-icon type="database" />数据信息</a-menu-item>-->
+              <a-menu-item key="redis_pubsub"><a-icon type="swap" />发布订阅</a-menu-item>
             </a-menu>
           </a-col>
           <a-col :span="5">
@@ -38,7 +39,7 @@
         </a-row>
       </a-layout-header>
       <a-layout-content style="padding: 0 50px">
-        <div v-show="memu_key=='3'">
+        <div v-show="memu_key=='redis_monitor'">
           <a-row>
             <a-col :span="12">
               <div ref="chart" style="height:46vh; width:48vw"></div>
@@ -57,7 +58,7 @@
           </a-row>
         </div>
         <div v-show="memu_key=='redis_info'">
-          <a-row>
+          <a-row style="height: 92vh">
             <a-col :span="16" style="padding-right: 10px">
               <a-divider>高时延日志</a-divider>
               <a-table rowKey="id" :columns="logs_columns" :loading="logs_loading" :dataSource="logs_data" :pagination="false" :scroll="{ y: 310 }" style="word-break: break-all">
@@ -159,6 +160,52 @@
                   </a-card>
                 </a-collapse-panel>
               </a-collapse>
+            </a-col>
+          </a-row>
+        </div>
+        <div v-show="memu_key=='redis_pubsub'">
+          <a-row style="padding-top: 10px">
+            <a-col :span="16" style="padding-right: 10px">
+              <div class="redis-output-container">
+                <a-list bordered :dataSource="redis_output[redis_ip]" >
+                  <a-list-item slot="renderItem" slot-scope="item">{{item}}</a-list-item>
+                  <div slot="header">Redis输出信息:</div>
+                </a-list>
+              </div>
+            </a-col>
+            <a-col :span="8" style="padding-top: 8px">
+              <a-input-group compact>
+                <a-input v-model="pubsub_key" style="width: 38%" placeholder="发布/订阅的Channel" />
+                <a-input v-model="pubsub_msg" style="width: 38%" placeholder="发布的信息" />
+                <a-button type="primary" @click="publish_msg" style="background: #108ee9; border-color: #108ee9">发布</a-button>
+                <a-button type="primary" @click="subscribe_msg" style="background: #87d068; border-color: #87d068">订阅</a-button>
+              </a-input-group>
+              <a-divider>发布列表</a-divider>
+              <div style="line-height: 2">
+                <template v-for="tag in publish_keys[redis_ip]">
+                  <a-tooltip v-if="tag.length > 50" :key="tag" :title="tag">
+                    <a-tag color="#108ee9" :key="tag" @click="copyPublishMsg(tag)" :closable="true" :afterClose="() => handlePubClose(tag)">
+                      {{`${tag.slice(0, 50)}...`}}
+                    </a-tag>
+                  </a-tooltip>
+                  <a-tag color="#108ee9" v-else :key="tag" @click="copyPublishMsg(tag)" :closable="true" :afterClose="() => handlePubClose(tag)">
+                    {{tag}}
+                  </a-tag>&nbsp;&nbsp;
+                </template>
+              </div>
+              <a-divider>订阅列表</a-divider>
+              <div style="line-height: 2">
+                <template v-for="tag in subscribe_keys[redis_ip]">
+                  <a-tooltip v-if="tag.length > 50" :key="tag" :title="tag">
+                    <a-tag color="#87d068" :key="tag" @click="()=>{pubsub_key = tag}" :closable="true" :afterClose="() => handleTagClose(tag)">
+                      {{`${tag.slice(0, 50)}...`}}
+                    </a-tag>
+                  </a-tooltip>
+                  <a-tag color="#87d068" v-else :key="tag" @click="()=>{pubsub_key = tag}" :closable="true" :afterClose="() => handleTagClose(tag)">
+                    {{tag}}
+                  </a-tag>
+                </template>
+              </div>
             </a-col>
           </a-row>
         </div>
@@ -278,8 +325,16 @@ export default {
       visible_children_loading: false,
       children_drawl_name: '新增连接',
       memu_key: '',
-      time_data: [],
+      subscribe_keys: {},
+      subscribe_keys_flag: {},
+      publish_keys: {},
+      pubsub_key: '',
+      pubsub_msg: '',
+      redis_output: {},
+      time_data: {},
       info_data: {},
+      info_data_map: {},
+      info_data_flags: {},
       logs_loading: false,
       logs_data: [],
       logs_columns: [{
@@ -328,6 +383,11 @@ export default {
         width: 150,
       }],
       websocket: null,
+      info_input_kbps: {},
+      info_output_kbps: {},
+      info_used_memory: {},
+      info_ops_per_sec: {},
+      info_used_cpu_user: {},
       myChart: null,
       myChart1: null,
       myChart2: null,
@@ -487,12 +547,12 @@ export default {
   methods: {
     menuClick(value) {
       this.memu_key = value.key
-      if (value.key === 'redis_info') {
+      if (this.memu_key === 'redis_info') {
         this.get_redis_infos()
-      } else if (this.memu_key == 3) {
-        this.websocket.send(JSON.stringify({
-          'type': 1, 'ip': this.redis_ip
-        }));
+      } else if (this.memu_key === 'redis_monitor') {
+        this.websocket_get_redis_info()
+      } else if (this.memu_key === 'redis_pubsub') {
+        // todo
       } else {
         this.$message.warning('暂未实现, 请耐心等待')
       }
@@ -504,12 +564,18 @@ export default {
         this.visible = true
       }
     },
-    change_redis(val) {
-      this.redis_ip = val
-      if (this.memu_key == 3) {
+    websocket_get_redis_info() {
+      if (this.info_data_flags[this.redis_ip] === undefined) {
         this.websocket.send(JSON.stringify({
           'type': 1, 'ip': this.redis_ip
         }));
+        this.info_data_flags[this.redis_ip] = true
+      }
+    },
+    change_redis(val) {
+      this.redis_ip = val
+      if (this.memu_key === 'redis_monitor') {
+        this.websocket_get_redis_info()
       } else if (this.memu_key === 'redis_info') {
         this.get_redis_infos()
       }
@@ -522,7 +588,8 @@ export default {
     get_info() {
       axios.get(this.url + '/containers?method=info&ip=' + this.redis_ip)
         .then(result => {
-          this.info_data = result.data.data;
+          this.info_data_map[this.redis_ip] = result.data.data
+          this.info_data = result.data.data
         })
     },
     get_logs() {
@@ -540,6 +607,50 @@ export default {
           this.clients_data = result.data.data;
           this.clients_loading = false
         })
+    },
+    publish_msg() {
+      if (this.redis_ip == "") {
+        this.$message.error('未检测到有效的Redis连接, 请在设置中添加并刷新页面', 10)
+        return
+      }
+      if (this.pubsub_key == "") {
+        this.$message.error('请输入Channel再试')
+        return
+      }
+      axios.get(this.url + `/containers?method=publish&ip=${this.redis_ip}&key=${this.pubsub_key}&msg=${this.pubsub_msg}`)
+        .then(result => {
+          let res = result.data
+          if (res.code != 0) {
+            this.$message.error(res.msg)
+          } else {
+            this.$message.success('Publish成功')
+            if (this.publish_keys[this.redis_ip] === undefined) {
+              this.publish_keys[this.redis_ip] = []
+            }
+            if (this.publish_keys[this.redis_ip].indexOf(res.msg + ' | ' + res.data) === -1) {
+              this.publish_keys[this.redis_ip].push(res.msg + ' | ' + res.data)
+              this.$forceUpdate()
+            }
+          }
+        })
+    },
+    subscribe_msg() {
+      if (this.redis_ip == "") {
+        this.$message.error('未检测到有效的Redis连接, 请在设置中添加并刷新页面', 10)
+        return
+      }
+      if (this.pubsub_key == "") {
+        this.$message.error('请输入Channel再试')
+        return
+      }
+      if (this.subscribe_keys_flag[this.redis_ip] === undefined) {
+        this.websocket.send(JSON.stringify({
+          'type': 2, 'ip': this.redis_ip, 'channel': this.pubsub_key, 'command': 'open'
+        }));
+        this.subscribe_keys_flag[this.redis_ip] = true
+      } else {
+        this.$message.error(`已经订阅 ${this.pubsub_key}, 无需重复订阅`)
+      }
     },
     upload_add() {
       this.visible_children_loading = true
@@ -601,9 +712,12 @@ export default {
         })
     },
     circle_push(arr, val) {
+      if (arr === undefined) {
+        arr = []
+      }
       arr.push(val)
-      // 保留15分钟的数据
-      if (arr.length > 15 * 60 * 60) {
+      // 保留10分钟的数据
+      if (arr.length > 10 * 60 * 60) {
         arr.shift()
       }
       return arr
@@ -641,33 +755,83 @@ export default {
       }
       return result;
     },
+    process_info_data(redata) {
+      const ip = redata.msg
+      const data = JSON.parse(redata.data)
+      this.info_data_map[ip] = data
+      this.info_data = this.info_data_map[this.redis_ip]
+      this.time_data[ip] = this.circle_push(this.time_data[ip], new Date().Format("HH:mm:ss"))
+      this.info_input_kbps[ip] = this.circle_push(this.info_input_kbps[ip], data['instantaneous_input_kbps'])
+      this.info_output_kbps[ip] = this.circle_push(this.info_output_kbps[ip], data['instantaneous_output_kbps'])
+      this.info_used_memory[ip] = this.circle_push(this.info_used_memory[ip], data['used_memory'] / 1024)
+      this.info_ops_per_sec[ip] = this.circle_push(this.info_ops_per_sec[ip], data['instantaneous_ops_per_sec'])
+      this.info_used_cpu_user[ip] = this.circle_push(this.info_used_cpu_user[ip], data['used_cpu_user'])
+      this.updateCharts()
+    },
     receiveData(e) {
       const redata = JSON.parse(e.data);
-      const ip = redata.msg
-      if (ip !== this.redis_ip) return
-
-      const data = JSON.parse(redata.data)
-      this.info_data = data
-
-      let now = new Date().Format("HH:mm:ss")
-      this.time_data = this.circle_push(this.time_data, now)
-
-      this.option.xAxis[0].data = this.time_data
-      this.option.xAxis[1].data = this.time_data
-      this.option.series[0].data = this.circle_push(this.option.series[0].data, data['instantaneous_input_kbps'])
-      this.option.series[1].data = this.circle_push(this.option.series[1].data, data['instantaneous_output_kbps'])
+      if (redata.type == 1) {
+        this.process_info_data(redata)
+      } else if (redata.type == 2) {
+        if (redata.status == 0) {
+          this.$message.success(`${redata.msg} 订阅成功`)
+          if (this.subscribe_keys[this.redis_ip] === undefined) {
+            this.subscribe_keys[this.redis_ip] = []
+          }
+          if (this.subscribe_keys[this.redis_ip].indexOf(this.pubsub_key) === -1) {
+            this.subscribe_keys[this.redis_ip].push(this.pubsub_key)
+            this.$forceUpdate()
+          }
+          return
+        } else if (redata.status == -1) {
+          this.$message.success(`${redata.msg} 取消订阅成功`)
+          const tags = this.subscribe_keys[redata.msg].filter(tag => tag !== redata.data)
+          this.subscribe_keys[this.redis_ip] = tags
+          this.$forceUpdate()
+          return
+        }
+        if (this.redis_output[this.redis_ip] === undefined) {
+          this.redis_output[this.redis_ip] = []
+        }
+        this.redis_output[this.redis_ip].push(`${redata.msg} Recieve ${redata.data} \n`)
+        this.$forceUpdate()
+      }
+    },
+    copyPublishMsg(val) {
+      let key_val = val.split(' | ')
+      this.pubsub_key = key_val[0]
+      this.pubsub_msg = key_val[1]
+    },
+    handlePubClose(removedTag) {
+      const tags = this.publish_keys[this.redis_ip].filter(tag => tag !== removedTag)
+      this.publish_keys[this.redis_ip] = tags
+      this.$forceUpdate()
+    },
+    handleTagClose(removedTag) {
+      if (this.subscribe_keys_flag[this.redis_ip]) {
+        this.websocket.send(JSON.stringify({
+          'type': 2, 'ip': this.redis_ip, 'channel': removedTag, 'command': 'close'
+        }));
+        delete this.subscribe_keys_flag[this.redis_ip]
+      }
+    },
+    updateCharts() {
+      this.option.xAxis[0].data = this.time_data[this.redis_ip]
+      this.option.xAxis[1].data = this.time_data[this.redis_ip]
+      this.option.series[0].data = this.info_input_kbps[this.redis_ip]
+      this.option.series[1].data = this.info_output_kbps[this.redis_ip]
       this.myChart.setOption(this.option);
 
-      this.option1.xAxis.data = this.time_data
-      this.option1.series[0].data = this.circle_push(this.option1.series[0].data, data['used_memory'] / 1024)
+      this.option1.xAxis.data = this.time_data[this.redis_ip]
+      this.option1.series[0].data = this.info_used_memory[this.redis_ip]
       this.myChart1.setOption(this.option1);
 
-      this.option2.xAxis.data = this.time_data
-      this.option2.series[0].data = this.circle_push(this.option2.series[0].data, data['instantaneous_ops_per_sec'])
+      this.option2.xAxis.data = this.time_data[this.redis_ip]
+      this.option2.series[0].data = this.info_ops_per_sec[this.redis_ip]
       this.myChart2.setOption(this.option2);
 
-      this.option3.xAxis.data = this.time_data
-      this.option3.series[0].data = this.circle_push(this.option3.series[0].data, data['used_cpu_user'])
+      this.option3.xAxis.data = this.time_data[this.redis_ip]
+      this.option3.series[0].data = this.info_used_cpu_user[this.redis_ip]
       this.myChart3.setOption(this.option3);
     }
   },
@@ -690,30 +854,23 @@ export default {
         this.$message.error('未检测到有效的Redis连接, 请在设置中添加并刷新页面', 10);
       } else {
         this.containers = data
-        this.menuClick({key:'redis_info'})
+        this.menuClick({key:'redis_pubsub'})
       }
     });
 
     let websocket = new WebSocket(this.ws_url)
     websocket.onopen = () => this.log("WebSocket连接成功")
-    websocket.onerror = () => this.log("WebSocket连接发生错误")
-    websocket.onclose = (e) => this.log(`connection closed (${e})`)
+    websocket.onerror = () => this.$message.error('WebSocket连接发生错误, 请刷新页面')
+    websocket.onclose = (e) => {this.$message.error(`WebSocket连接关闭, 请刷新页面`); this.log(`WebSocket连接关闭 (${e}), 请刷新页面`)}
     websocket.onmessage = (e) => this.receiveData(e)
     this.websocket = websocket
   },
   mounted() {
-    if (this.myChart == null)
-        this.myChart = echarts.init(this.$refs.chart)
-    this.myChart.setOption(this.option);
-    if (this.myChart1 == null)
-      this.myChart1 = echarts.init(this.$refs.chart1)
-    this.myChart1.setOption(this.option1);
-    if (this.myChart2 == null)
-      this.myChart2 = echarts.init(this.$refs.chart2)
-    this.myChart2.setOption(this.option2);
-    if (this.myChart3 == null)
-      this.myChart3 = echarts.init(this.$refs.chart3)
-    this.myChart3.setOption(this.option3);
+    this.myChart = echarts.init(this.$refs.chart)
+    this.myChart1 = echarts.init(this.$refs.chart1)
+    this.myChart2 = echarts.init(this.$refs.chart2)
+    this.myChart3 = echarts.init(this.$refs.chart3)
+    this.updateCharts()
   }
 };
 </script>
@@ -741,5 +898,11 @@ export default {
   .gridcard100 {
     width: 100%;
     textAlign: 'left';
+  }
+
+  .redis-output-container {
+    overflow: auto;
+    padding: 8px 24px;
+    height: 92vh;
   }
 </style>
