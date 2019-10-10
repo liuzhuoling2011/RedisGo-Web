@@ -9,7 +9,7 @@
                     theme="dark"
                     mode="horizontal"
                     @click="menuClick"
-                    :defaultSelectedKeys="['redis_pubsub']"
+                    :defaultSelectedKeys="['redis_info']"
                     :style="{ lineHeight: '64px' }"
             >
               <a-menu-item key="redis_info"><a-icon type="info-circle" />系统详情</a-menu-item>
@@ -38,7 +38,7 @@
           </a-col>
         </a-row>
       </a-layout-header>
-      <a-layout-content style="padding: 0 50px">
+      <a-layout-content style="padding: 0 50px; height: 92vh">
         <div v-show="memu_key=='redis_monitor'">
           <a-row>
             <a-col :span="12">
@@ -58,7 +58,7 @@
           </a-row>
         </div>
         <div v-show="memu_key=='redis_info'">
-          <a-row style="height: 92vh">
+          <a-row>
             <a-col :span="16" style="padding-right: 10px">
               <a-divider>高时延日志</a-divider>
               <a-table rowKey="id" :columns="logs_columns" :loading="logs_loading" :dataSource="logs_data" :pagination="false" :scroll="{ y: 310 }" style="word-break: break-all">
@@ -215,6 +215,7 @@
 
       </a-layout-content>
     </a-layout>
+    <a-button shape="circle" icon="thunderbolt" size="large" @click="()=>{command_visible = true}" class="command-botton"/>
     <a-drawer
             width=560
             placement="right"
@@ -267,6 +268,18 @@
       <a-button type="primary" style="margin-top: 10px" v-if="children_drawl_name=='修改连接'" @click="upload_edit" :loading="visible_children_loading">确认</a-button>
       <a-button type="primary" style="margin-top: 10px" v-else @click="upload_add" :loading="visible_children_loading">确认</a-button>
     </a-drawer>
+    <a-drawer
+            height=500
+            placement="bottom"
+            @close="()=>{command_visible = false}"
+            :visible="command_visible"
+    >
+      <div slot="title" >Redis终端</div>
+      <a-textarea id="redis_command_output" v-model="redis_command_output" placeholder="Redis命令输出" :rows="16" style="background: silver;"/>
+      <a-input-search v-model="redis_command" placeholder="请输入执行的命令" style="margin-top: 10px" @search="execute_command">
+        <a-button slot="enterButton" type="primary">执行</a-button>
+      </a-input-search>
+    </a-drawer>
   </div>
 </template>
 
@@ -298,13 +311,13 @@ Date.prototype.Format = function(fmt){
   return fmt;
 };
 
-// const wsProtocol = location.protocol === 'http:' ? 'ws:' : 'wss:'
-// let base_url = location.origin, ws_url = `${wsProtocol}//${location.host}/ws`
+const wsProtocol = location.protocol === 'http:' ? 'ws:' : 'wss:'
+let base_url = location.origin, ws_url = `${wsProtocol}//${location.host}/ws`
 
 // let server = '47.52.140.130:8080'
-let server = '127.0.0.1:51299'
-let base_url = `http://${server}`
-let ws_url = `ws://${server}/ws`
+// let server = '127.0.0.1:51299'
+// let base_url = `http://${server}`
+// let ws_url = `ws://${server}/ws`
 
 export default {
   name: "app",
@@ -331,6 +344,9 @@ export default {
       pubsub_key: '',
       pubsub_msg: '',
       redis_output: {},
+      redis_command: '',
+      redis_command_output: '',
+      command_visible: false,
       time_data: {},
       info_data: {},
       info_data_map: {},
@@ -554,7 +570,7 @@ export default {
       } else if (this.memu_key === 'redis_pubsub') {
         // todo
       } else {
-        this.$message.warning('暂未实现, 请耐心等待')
+        // this.$message.warning('暂未实现, 请耐心等待')
       }
     },
     settingClick(value) {
@@ -711,13 +727,24 @@ export default {
           }
         })
     },
-    circle_push(arr, val) {
+    execute_command() {
+      axios.get(this.url + `/containers?method=execute&ip=${this.redis_ip}&command=${this.redis_command}`)
+        .then(result => {
+          let code = result.data.code;
+          if (code == 0) {
+            this.redis_command_output += `${new Date().Format("yyyy-MM-dd HH:mm:ss")}\t${result.data.data}\n`
+            const textarea = document.getElementById('redis_command_output');
+            textarea.scrollTop = textarea.scrollHeight;
+          }
+        })
+    },
+    circle_push(arr, val, len = 10 * 60 * 60) {
       if (arr === undefined) {
         arr = []
       }
       arr.push(val)
       // 保留10分钟的数据
-      if (arr.length > 10 * 60 * 60) {
+      if (arr.length > len) {
         arr.shift()
       }
       return arr
@@ -790,10 +817,7 @@ export default {
           this.$forceUpdate()
           return
         }
-        if (this.redis_output[this.redis_ip] === undefined) {
-          this.redis_output[this.redis_ip] = []
-        }
-        this.redis_output[this.redis_ip].push(`${redata.msg} Recieve ${redata.data} \n`)
+        this.redis_output[this.redis_ip] = this.circle_push(this.redis_output[this.redis_ip], `从 ${redata.msg} 接收 ${redata.data} \n`)
         this.$forceUpdate()
       }
     },
@@ -854,7 +878,7 @@ export default {
         this.$message.error('未检测到有效的Redis连接, 请在设置中添加并刷新页面', 10);
       } else {
         this.containers = data
-        this.menuClick({key:'redis_pubsub'})
+        this.menuClick({key:'redis_info'})
       }
     });
 
@@ -886,6 +910,15 @@ export default {
   }
   .ant-table-header::-webkit-scrollbar {
     background-color: transparent;
+  }
+  .command-botton {
+    position: absolute;
+    right: 30px;
+    bottom: 30px;
+    background: darkgray
+  }
+  .command-botton:hover, .command-botton:focus {
+    border-color: #fff;
   }
   .gridcard {
     width: 50%;
