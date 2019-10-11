@@ -76,12 +76,12 @@
             <a-col :span="8">
               <a-collapse accordion activeKey="1" style="font-size: 15px">
                 <a-collapse-panel key="1">
-                  <template slot="header"><a-icon type="home" /> 服务端信息</template>
+                  <template slot="header"><a-icon type="home" /> 服务端信息 | {{redis_ip}}</template>
                   <a-card>
                     <a-card-grid class="gridcard">版本信息: <a-tag color="green">{{info_data.redis_version}} | {{info_data.arch_bits}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard">进程编号/端口: <a-tag color="green">{{info_data.process_id}} | {{info_data.tcp_port}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard">运行时间: {{formatSeconds(info_data.uptime_in_seconds)}}</a-card-grid>
+                    <a-card-grid class="gridcard">PID | PORT: <a-tag color="green">{{info_data.process_id}} | {{info_data.tcp_port}}</a-tag></a-card-grid>
                     <a-card-grid class="gridcard">服务模式: {{info_data.redis_mode}}</a-card-grid>
+                    <a-card-grid class="gridcard">运行时间: {{formatSeconds(info_data.uptime_in_seconds)}}</a-card-grid>
                     <a-card-grid class="gridcard">系统版本: {{info_data.os}}</a-card-grid>
                   </a-card>
                 </a-collapse-panel>
@@ -275,7 +275,7 @@
             :visible="command_visible"
     >
       <div slot="title" >Redis终端</div>
-      <a-textarea id="redis_command_output" v-model="redis_command_output" placeholder="Redis命令输出" :rows="16" style="background: silver;"/>
+      <a-textarea id="redis_command_output" v-model="redis_command_output" placeholder="Redis命令输出" :rows="16" style="background: silver;word-break: break-all;"/>
       <a-input-search v-model="redis_command" placeholder="请输入执行的命令" style="margin-top: 10px" @search="execute_command">
         <a-button slot="enterButton" type="primary">执行</a-button>
       </a-input-search>
@@ -680,6 +680,11 @@ export default {
             this.containers[this.container_tmp.ip] = res.data
             this.$message.success('添加成功')
             this.visible_children = false
+            if (Object.keys(this.containers).length === 1) {
+              this.redis_ip = this.container_tmp.ip
+              this.redis_name = this.container_tmp.name
+              this.menuClick({key:'redis_info'})
+            }
           }
         })
     },
@@ -721,9 +726,22 @@ export default {
         .then(result => {
           let code = result.data.code;
           if (code == 0) {
+            this.$message.success('成功删除Redis连接');
+            if (ip === this.redis_ip) {
+              let find = false
+              for (let c in this.containers) {
+                if (this.containers[c].ip !== ip) {
+                  this.redis_ip = this.containers[c].ip
+                  find = true
+                  break
+                }
+              }
+              if (!find) {
+                this.$message.error('未检测到有效的Redis连接, 请在右上角的设置中添加', 10);
+              }
+            }
             delete this.containers[ip]
             this.$forceUpdate()
-            this.$message.success('成功删除Redis连接');
           }
         })
     },
@@ -732,7 +750,11 @@ export default {
         .then(result => {
           let code = result.data.code;
           if (code == 0) {
-            this.redis_command_output += `${new Date().Format("yyyy-MM-dd HH:mm:ss")}\t${result.data.data}\n`
+            let output = result.data.data
+            if (Array.isArray(output)) {
+              output = output.join(', ')
+            }
+            this.redis_command_output += `${new Date().Format("yyyy-MM-dd HH:mm:ss")}\t${output}\n`
             const textarea = document.getElementById('redis_command_output');
             textarea.scrollTop = textarea.scrollHeight;
           }
@@ -875,7 +897,7 @@ export default {
         }
       }
       if (this.redis_ip === "") {
-        this.$message.error('未检测到有效的Redis连接, 请在设置中添加并刷新页面', 10);
+        this.$message.error('未检测到有效的Redis连接, 请在右上角的设置中添加', 10);
       } else {
         this.containers = data
         this.menuClick({key:'redis_info'})
