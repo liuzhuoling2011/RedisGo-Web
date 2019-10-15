@@ -1300,10 +1300,10 @@ ansi-styles@^3.2.0, ansi-styles@^3.2.1:
   dependencies:
     color-convert "^1.9.0"
 
-ant-design-vue@^1.4.0-beta.0:
-  version "1.4.0-beta.0"
-  resolved "https://registry.yarnpkg.com/ant-design-vue/-/ant-design-vue-1.4.0-beta.0.tgz#a2c7d9683804101691bcb3c518e0114dc67efe6f"
-  integrity sha512-MZnb5Pwr4mlYoE2pHB5XMeL22pmPlKF7WkQszS18t7VygS9Q/gF8nJl94nebv6EHJRrKg0i/6Axh1gR0vXb6Hg==
+ant-design-vue@^1.4.0:
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/ant-design-vue/-/ant-design-vue-1.4.0.tgz#22a2d39b6fddcf8fd7d27f068419678e5d305eea"
+  integrity sha512-6iVozZtWuO8wIjLhwRb5xsASZcr2SkSmCTGi5X8q05P/gRWwQIJAOf1gVGLcC12Nik8JAp5UUgBytP+Zj6c6gQ==
   dependencies:
     "@ant-design/icons" "^2.1.1"
     "@ant-design/icons-vue" "^2.0.0"

@@ -274,7 +274,7 @@
             @close="()=>{command_visible = false}"
             :visible="command_visible"
     >
-      <div slot="title" >Redis终端</div>
+      <div slot="title" >Redis终端 (请不要执行带阻塞性质的命令 例如: BLPOP, SUBSCRIBE)</div>
       <a-textarea id="redis_command_output" v-model="redis_command_output" placeholder="Redis命令输出" :rows="16" style="background: silver;word-break: break-all;"/>
       <a-input-search v-model="redis_command" placeholder="请输入执行的命令" style="margin-top: 10px" @search="execute_command">
         <a-button slot="enterButton" type="primary">执行</a-button>
@@ -311,13 +311,13 @@ Date.prototype.Format = function(fmt){
   return fmt;
 };
 
-const wsProtocol = location.protocol === 'http:' ? 'ws:' : 'wss:'
-let base_url = location.origin, ws_url = `${wsProtocol}//${location.host}/ws`
+// const wsProtocol = location.protocol === 'http:' ? 'ws:' : 'wss:'
+// let base_url = location.origin, ws_url = `${wsProtocol}//${location.host}/ws`
 
 // let server = '47.52.140.130:8080'
-// let server = '127.0.0.1:51299'
-// let base_url = `http://${server}`
-// let ws_url = `ws://${server}/ws`
+let server = '127.0.0.1:51299'
+let base_url = `http://${server}`
+let ws_url = `ws://${server}/ws`
 
 export default {
   name: "app",
@@ -399,6 +399,7 @@ export default {
         width: 150,
       }],
       websocket: null,
+      websocket_ping: null,
       info_input_kbps: {},
       info_output_kbps: {},
       info_used_memory: {},
@@ -580,11 +581,31 @@ export default {
         this.visible = true
       }
     },
+    reconnect_websocket() {
+      let websocket = new WebSocket(this.ws_url)
+      websocket.onopen = () => {
+        this.log("WebSocket连接成功")
+        // 60秒一次的心跳信号, 防止websocket自动断开
+        this.websocket_ping = setInterval(this.send_websocket_msg, 60000)
+      }
+      websocket.onerror = () => this.$message.error('WebSocket连接发生错误, 请刷新页面')
+      websocket.onclose = (e) => {
+        this.log(`WebSocket连接关闭 (${e.data})`)
+        this.websocket = null
+        clearTimeout(this.websocket_ping)
+        this.websocket_ping = null
+      }
+      websocket.onmessage = (e) => this.receiveData(e)
+      this.websocket = websocket
+    },
+    send_websocket_msg(json_data={'type':0}) {
+      this.websocket.send(JSON.stringify(json_data));
+    },
     websocket_get_redis_info() {
       if (this.info_data_flags[this.redis_ip] === undefined) {
-        this.websocket.send(JSON.stringify({
+        this.send_websocket_msg({
           'type': 1, 'ip': this.redis_ip
-        }));
+        })
         this.info_data_flags[this.redis_ip] = true
       }
     },
@@ -660,10 +681,13 @@ export default {
         return
       }
       if (this.subscribe_keys_flag[this.redis_ip] === undefined) {
-        this.websocket.send(JSON.stringify({
+        this.subscribe_keys_flag[this.redis_ip] = {}
+      }
+      if (this.subscribe_keys_flag[this.redis_ip][this.pubsub_key] === undefined) {
+        this.send_websocket_msg({
           'type': 2, 'ip': this.redis_ip, 'channel': this.pubsub_key, 'command': 'open'
-        }));
-        this.subscribe_keys_flag[this.redis_ip] = true
+        })
+        this.subscribe_keys_flag[this.redis_ip][this.pubsub_key] = true
       } else {
         this.$message.error(`已经订阅 ${this.pubsub_key}, 无需重复订阅`)
       }
@@ -855,9 +879,9 @@ export default {
     },
     handleTagClose(removedTag) {
       if (this.subscribe_keys_flag[this.redis_ip]) {
-        this.websocket.send(JSON.stringify({
+        this.send_websocket_msg({
           'type': 2, 'ip': this.redis_ip, 'channel': removedTag, 'command': 'close'
-        }));
+        })
         delete this.subscribe_keys_flag[this.redis_ip]
       }
     },
@@ -903,13 +927,7 @@ export default {
         this.menuClick({key:'redis_info'})
       }
     });
-
-    let websocket = new WebSocket(this.ws_url)
-    websocket.onopen = () => this.log("WebSocket连接成功")
-    websocket.onerror = () => this.$message.error('WebSocket连接发生错误, 请刷新页面')
-    websocket.onclose = (e) => {this.$message.error(`WebSocket连接关闭, 请刷新页面`); this.log(`WebSocket连接关闭 (${e}), 请刷新页面`)}
-    websocket.onmessage = (e) => this.receiveData(e)
-    this.websocket = websocket
+    this.reconnect_websocket()
   },
   mounted() {
     this.myChart = echarts.init(this.$refs.chart)
@@ -917,6 +935,11 @@ export default {
     this.myChart2 = echarts.init(this.$refs.chart2)
     this.myChart3 = echarts.init(this.$refs.chart3)
     this.updateCharts()
+  },
+  beforeDestroy() {
+    if (this.websocket_ping !== null) {
+      clearTimeout(this.websocket_ping);
+    }
   }
 };
 </script>
