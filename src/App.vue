@@ -590,7 +590,21 @@ export default {
     },
     settingClick(value) {
       if (value.key === 'about') {
-        this.$message.success('RedisGo Web是为更好的监控/管理内网的Redis而倾心打造')
+        const h = this.$createElement
+        this.$success({
+          title: 'RedisGo Web V1.1.1',
+          width: 420,
+          content: h('div', {
+            style: {
+              'text-align': 'center',
+              'padding-right': '35px'
+            },
+          }, [
+            h('img', {style: {width: '50%'}, attrs: {src: "http://qiniu.zoranjojo.top/zoranjojo.jpg"}}),
+            h('p', '为更好的监控/管理内网的Redis而倾心打造'),
+            h('p', '可以关注公众号咨询问题或者获得最新的消息'),
+          ]),
+        })
       } else if (value.key === 'edit') {
         this.visible = true
       }
