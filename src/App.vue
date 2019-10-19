@@ -30,6 +30,10 @@
                   <a-icon class="ant-dropdown-link" type="setting" style="color: #ffffff; font-size: 28px; padding-top: 17px"/>
                   <a-menu slot="overlay" @click="settingClick">
                     <a-menu-item key="about"><a-icon type="info-circle"/>关于程序</a-menu-item>
+<!--                    <a-menu-item key="update"><a-icon type="info-circle"/>-->
+<!--                      <a-badge v-if="updateFlag" status="error">更新通知</a-badge>-->
+<!--                      <span v-else>更新通知</span>-->
+<!--                    </a-menu-item>-->
                     <a-menu-item key="edit"><a-icon type="edit"/>连接管理</a-menu-item>
                   </a-menu>
                 </a-dropdown>
@@ -172,8 +176,11 @@
 <!--                  <a-tag color="#108ee9" v-else :key="tag" @click="copyPublishMsg(tag)" :closable="true" :afterClose="() => handlePubClose(tag)">-->
 <!--                    {{tag}}-->
 <!--                  </a-tag>&nbsp;&nbsp;-->
-                  <a-list-item slot="renderItem" slot-scope="item">{{item}}
-                    <a-tag color="blue" slot="actions" @click="format_json(item)">JSON</a-tag>
+                  <a-list-item slot="renderItem" slot-scope="item, index">{{item}}
+                    <div slot="actions">
+                      <a-tag color="blue" @click="format_json(item)">JSON</a-tag>
+                      <a-tag color="red" @click="delete_pubsub_output(index)">X</a-tag>
+                    </div>
                   </a-list-item>
                 </a-list>
               </div>
@@ -320,13 +327,13 @@ Date.prototype.Format = function(fmt){
   return fmt;
 };
 
-// const wsProtocol = location.protocol === 'http:' ? 'ws:' : 'wss:'
-// let base_url = location.origin, ws_url = `${wsProtocol}//${location.host}/ws`
+const wsProtocol = location.protocol === 'http:' ? 'ws:' : 'wss:'
+let base_url = location.origin, ws_url = `${wsProtocol}//${location.host}/ws`
 
-let server = '47.52.140.130:8080'
+// let server = '47.52.140.130:8080'
 // let server = '127.0.0.1:51299'
-let base_url = `http://${server}`
-let ws_url = `ws://${server}/ws`
+// let base_url = `http://${server}`
+// let ws_url = `ws://${server}/ws`
 
 export default {
   name: "app",
@@ -359,6 +366,7 @@ export default {
       redis_command: '',
       redis_command_output: '',
       command_visible: false,
+      updateFlag: false,
       time_data: {},
       info_data: {},
       info_data_map: {},
@@ -605,6 +613,8 @@ export default {
             h('p', '可以关注公众号咨询问题或者获得最新的消息'),
           ]),
         })
+      } else if (value.key === 'update') {
+        this.visible = true
       } else if (value.key === 'edit') {
         this.visible = true
       }
@@ -685,6 +695,10 @@ export default {
       } catch(e) {
         this.$message.error('不支持该类型数据转化为JSON')
       }
+    },
+    delete_pubsub_output(index) {
+      this.redis_output[this.redis_ip].splice(index, 1)
+      this.$forceUpdate()
     },
     publish_msg() {
       if (this.redis_ip == "") {
