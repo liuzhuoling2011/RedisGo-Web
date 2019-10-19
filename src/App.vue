@@ -168,8 +168,13 @@
             <a-col :span="16" style="padding-right: 10px">
               <div class="redis-output-container">
                 <a-list bordered :dataSource="redis_output[redis_ip]" >
-                  <a-list-item slot="renderItem" slot-scope="item">{{item}}</a-list-item>
                   <div slot="header">Redis输出信息:</div>
+<!--                  <a-tag color="#108ee9" v-else :key="tag" @click="copyPublishMsg(tag)" :closable="true" :afterClose="() => handlePubClose(tag)">-->
+<!--                    {{tag}}-->
+<!--                  </a-tag>&nbsp;&nbsp;-->
+                  <a-list-item slot="renderItem" slot-scope="item">{{item}}
+                    <a-tag color="blue" slot="actions" @click="format_json(item)">JSON</a-tag>
+                  </a-list-item>
                 </a-list>
               </div>
             </a-col>
@@ -280,6 +285,9 @@
         <a-button slot="enterButton" type="primary">执行</a-button>
       </a-input-search>
     </a-drawer>
+    <a-modal v-model="showJson" :footer="null" :destroyOnClose="true" width="50vw" @ok="()=>{}">
+      <json-view :data="jsonData" style="margin-top: 20px; overflow: auto; max-height: 72vh"/>
+    </a-modal>
   </div>
 </template>
 
@@ -287,6 +295,7 @@
 
 import axios from "axios";
 import echarts from 'echarts'
+import jsonView from 'vue-json-views'
 
 Date.prototype.Format = function(fmt){
   var o = {
@@ -314,13 +323,16 @@ Date.prototype.Format = function(fmt){
 // const wsProtocol = location.protocol === 'http:' ? 'ws:' : 'wss:'
 // let base_url = location.origin, ws_url = `${wsProtocol}//${location.host}/ws`
 
-// let server = '47.52.140.130:8080'
-let server = '127.0.0.1:51299'
+let server = '47.52.140.130:8080'
+// let server = '127.0.0.1:51299'
 let base_url = `http://${server}`
 let ws_url = `ws://${server}/ws`
 
 export default {
   name: "app",
+  components: {
+    jsonView
+  },
   data() {
     return {
       // eslint-disable-next-line no-console
@@ -405,6 +417,8 @@ export default {
       info_used_memory: {},
       info_ops_per_sec: {},
       info_used_cpu_user: {},
+      jsonData: "",
+      showJson: false,
       myChart: null,
       myChart1: null,
       myChart2: null,
@@ -645,9 +659,22 @@ export default {
           this.clients_loading = false
         })
     },
+    format_json(data) {
+      let json_data = data.split('接收')[1]
+      try {
+        if (typeof JSON.parse(json_data) == "object") {
+          this.jsonData = JSON.parse(json_data)
+          this.showJson = true
+        } else {
+          this.$message.error('不支持该类型数据转化为JSON')
+        }
+      } catch(e) {
+        this.$message.error('不支持该类型数据转化为JSON')
+      }
+    },
     publish_msg() {
       if (this.redis_ip == "") {
-        this.$message.error('未检测到有效的Redis连接, 请在设置中添加并刷新页面', 10)
+        this.$message.error('未检测到有效的Redis连接, 请在设置中添加', 10)
         return
       }
       if (this.pubsub_key == "") {

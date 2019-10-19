@@ -8243,6 +8243,11 @@ vue-hot-reload-api@^2.3.0:
   resolved "https://registry.npm.taobao.org/vue-hot-reload-api/download/vue-hot-reload-api-2.3.4.tgz#532955cc1eb208a3d990b3a9f9a70574657e08f2"
   integrity sha1-UylVzB6yCKPZkLOp+acFdGV+CPI=
 
+vue-json-views@^0.3.1:
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/vue-json-views/-/vue-json-views-0.3.1.tgz#537077166ad329865f20fc3c6d329945141749aa"
+  integrity sha512-ztOi4TyLDhfgLqd6qqq2dQ4rXNHSZ6/EW093bYB6aND+oO7q6+k4YSOasmiqC3laFuW3G1ovByfn5cv/leGnsg==
+
 vue-loader@^15.7.0:
   version "15.7.1"
   resolved "https://registry.npm.taobao.org/vue-loader/download/vue-loader-15.7.1.tgz#6ccacd4122aa80f69baaac08ff295a62e3aefcfd"
