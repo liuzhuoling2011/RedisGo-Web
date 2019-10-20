@@ -177,10 +177,10 @@
 <!--                    {{tag}}-->
 <!--                  </a-tag>&nbsp;&nbsp;-->
                   <a-list-item slot="renderItem" slot-scope="item, index">{{item}}
-                    <div slot="actions">
-                      <a-tag color="blue" @click="format_json(item)">JSON</a-tag>
-                      <a-tag color="red" @click="delete_pubsub_output(index)">X</a-tag>
-                    </div>
+                      <div slot="actions">
+                        <a-tag color="blue" @click="format_json(item)">JSON</a-tag>
+                        <a-tag color="red" @click="delete_pubsub_output(index)">X</a-tag>
+                      </div>
                   </a-list-item>
                 </a-list>
               </div>
@@ -214,6 +214,16 @@
                     </a-tag>
                   </a-tooltip>
                   <a-tag color="#87d068" v-else :key="tag" @click="()=>{pubsub_key = tag}" :closable="true" :afterClose="() => handleTagClose(tag)">
+                    {{tag}}
+                  </a-tag>
+                </template>
+                <template v-for="tag in subscribe_keys_history[redis_ip]">
+                  <a-tooltip v-if="tag.length > 50" :key="tag" :title="tag">
+                    <a-tag color="darkgrey" :key="tag" @click="()=>{pubsub_key = tag}" :closable="true" :afterClose="() => handleTagHisClose(tag)">
+                      {{`${tag.slice(0, 50)}...`}}
+                    </a-tag>
+                  </a-tooltip>
+                  <a-tag color="darkgrey" v-else :key="tag" @click="()=>{pubsub_key = tag}" :closable="true" :afterClose="() => handleTagHisClose(tag)">
                     {{tag}}
                   </a-tag>
                 </template>
@@ -358,6 +368,7 @@ export default {
       children_drawl_name: '新增连接',
       memu_key: '',
       subscribe_keys: {},
+      subscribe_keys_history: {},
       subscribe_keys_flag: {},
       publish_keys: {},
       pubsub_key: '',
@@ -721,6 +732,7 @@ export default {
             }
             if (this.publish_keys[this.redis_ip].indexOf(res.msg + ' | ' + res.data) === -1) {
               this.publish_keys[this.redis_ip].push(res.msg + ' | ' + res.data)
+              localStorage.setItem('publish_keys', JSON.stringify(this.publish_keys))
               this.$forceUpdate()
             }
           }
@@ -910,6 +922,7 @@ export default {
             this.subscribe_keys[this.redis_ip].push(this.pubsub_key)
             this.$forceUpdate()
           }
+          this.handleTagHisClose(redata.msg)
           return
         } else if (redata.status == -1) {
           this.$message.success(`${redata.msg} 取消订阅成功`)
@@ -940,6 +953,11 @@ export default {
         delete this.subscribe_keys_flag[this.redis_ip]
       }
     },
+    handleTagHisClose(removedTag) {
+      const tags = this.subscribe_keys_history[this.redis_ip].filter(tag => tag !== removedTag)
+      this.subscribe_keys_history[this.redis_ip] = tags
+      this.$forceUpdate()
+    },
     updateCharts() {
       this.option.xAxis[0].data = this.time_data[this.redis_ip]
       this.option.xAxis[1].data = this.time_data[this.redis_ip]
@@ -958,6 +976,25 @@ export default {
       this.option3.xAxis.data = this.time_data[this.redis_ip]
       this.option3.series[0].data = this.info_used_cpu_user[this.redis_ip]
       this.myChart3.setOption(this.option3);
+    },
+    onDestroy() {
+      if (this.websocket_ping !== null) {
+        clearTimeout(this.websocket_ping);
+      }
+      let save_subscribe_keys = this.subscribe_keys
+      for (let ip in this.subscribe_keys_history) {
+        for (let index in this.subscribe_keys_history[ip]) {
+          let channel = this.subscribe_keys_history[ip][index]
+          if (save_subscribe_keys[ip] === undefined) {
+            save_subscribe_keys[ip] = []
+            save_subscribe_keys[ip].push(channel)
+          }
+          if (save_subscribe_keys[ip].indexOf(channel) === -1) {
+            save_subscribe_keys[ip].push(channel)
+          }
+        }
+      }
+      localStorage.setItem('subscribe_keys', JSON.stringify(save_subscribe_keys))
     }
   },
   created() {
@@ -983,6 +1020,7 @@ export default {
       }
     });
     this.reconnect_websocket()
+    window.onbeforeunload = this.onDestroy
   },
   mounted() {
     this.myChart = echarts.init(this.$refs.chart)
@@ -990,10 +1028,15 @@ export default {
     this.myChart2 = echarts.init(this.$refs.chart2)
     this.myChart3 = echarts.init(this.$refs.chart3)
     this.updateCharts()
-  },
-  beforeDestroy() {
-    if (this.websocket_ping !== null) {
-      clearTimeout(this.websocket_ping);
+
+    let publish_keys = localStorage.getItem('publish_keys')
+    if (publish_keys !== null) {
+      this.publish_keys = JSON.parse(publish_keys)
+    }
+
+    let subscribe_keys = localStorage.getItem('subscribe_keys')
+    if (subscribe_keys !== null) {
+      this.subscribe_keys_history = JSON.parse(subscribe_keys)
     }
   }
 };
