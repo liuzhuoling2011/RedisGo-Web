@@ -86,6 +86,8 @@
                     <a-card-grid class="gridcard">PID | PORT: <a-tag color="green">{{info_data.process_id}} | {{info_data.tcp_port}}</a-tag></a-card-grid>
                     <a-card-grid class="gridcard">服务模式: {{info_data.redis_mode}}</a-card-grid>
                     <a-card-grid class="gridcard">运行时间: {{formatSeconds(info_data.uptime_in_seconds)}}</a-card-grid>
+                    <a-card-grid class="gridcard">执行文件: {{info_data.executable}}</a-card-grid>
+                    <a-card-grid class="gridcard">配置文件: {{info_data.config_file}} <a-icon @click="get_config" type="info-circle" style="font-size: 16px; color: cornflowerblue"/></a-card-grid>
                     <a-card-grid class="gridcard">系统版本: {{info_data.os}}</a-card-grid>
                   </a-card>
                 </a-collapse-panel>
@@ -173,31 +175,30 @@
               <div class="redis-output-container">
                 <a-list bordered :dataSource="redis_output[redis_ip]" >
                   <div slot="header">Redis输出信息:</div>
-<!--                  <a-tag color="#108ee9" v-else :key="tag" @click="copyPublishMsg(tag)" :closable="true" :afterClose="() => handlePubClose(tag)">-->
-<!--                    {{tag}}-->
-<!--                  </a-tag>&nbsp;&nbsp;-->
-                  <a-list-item slot="renderItem" slot-scope="item, index">{{item}}
-                      <div slot="actions">
-                        <a-tag color="blue" @click="format_json(item)">JSON</a-tag>
-                        <a-tag color="red" @click="delete_pubsub_output(index)">X</a-tag>
-                      </div>
+                  <a-list-item slot="renderItem" slot-scope="item, index">
+                    <a-list-item-meta :description="item[1]" >
+                      <a slot="title">接收通道: {{item[0]}}</a>
+                    </a-list-item-meta>
+                    <div slot="actions">
+                      <a-tag color="blue" @click="format_json(item[1])">JSON</a-tag>
+                      <a-tag color="red" @click="delete_pubsub_output(index)">X</a-tag>
+                    </div>
                   </a-list-item>
                 </a-list>
               </div>
             </a-col>
             <a-col :span="8" style="padding-top: 8px">
-              <a-input-group compact>
-                <a-input v-model="pubsub_key" style="width: 38%" placeholder="发布/订阅的Channel" />
-                <a-input v-model="pubsub_msg" style="width: 38%" placeholder="发布的信息" />
-                <a-button type="primary" @click="publish_msg" style="background: #108ee9; border-color: #108ee9">发布</a-button>
-                <a-button type="primary" @click="subscribe_msg" style="background: #87d068; border-color: #87d068">订阅</a-button>
-              </a-input-group>
+              <a-input v-model="pubsub_key" style="margin-bottom: 8px" placeholder="发布/订阅的Channel" />
+              <a-textarea v-model="pubsub_msg" :rows="10" style="margin-bottom: 8px" placeholder="需要发布的信息/naaaa" />
+              <a-button type="primary" @click="publish_msg" style="background: #108ee9; border-color: #108ee9">发布</a-button>
+              <a-button type="primary" @click="subscribe_msg" style="background: #87d068; border-color: #87d068; margin-left: 5px">订阅</a-button>
+
               <a-divider>发布列表</a-divider>
               <div style="line-height: 2">
                 <template v-for="tag in publish_keys[redis_ip]">
-                  <a-tooltip v-if="tag.length > 50" :key="tag" :title="tag">
+                  <a-tooltip v-if="tag.length > 100" :key="tag" :title="tag">
                     <a-tag color="#108ee9" :key="tag" @click="copyPublishMsg(tag)" :closable="true" :afterClose="() => handlePubClose(tag)">
-                      {{`${tag.slice(0, 50)}...`}}
+                      {{`${tag.slice(0, 100)}...`}}
                     </a-tag>
                   </a-tooltip>
                   <a-tag color="#108ee9" v-else :key="tag" @click="copyPublishMsg(tag)" :closable="true" :afterClose="() => handlePubClose(tag)">
@@ -208,9 +209,9 @@
               <a-divider>订阅列表</a-divider>
               <div style="line-height: 2">
                 <template v-for="tag in subscribe_keys[redis_ip]">
-                  <a-tooltip v-if="tag.length > 50" :key="tag" :title="tag">
+                  <a-tooltip v-if="tag.length > 100" :key="tag" :title="tag">
                     <a-tag color="#87d068" :key="tag" @click="()=>{pubsub_key = tag}" :closable="true" :afterClose="() => handleTagClose(tag)">
-                      {{`${tag.slice(0, 50)}...`}}
+                      {{`${tag.slice(0, 100)}...`}}
                     </a-tag>
                   </a-tooltip>
                   <a-tag color="#87d068" v-else :key="tag" @click="()=>{pubsub_key = tag}" :closable="true" :afterClose="() => handleTagClose(tag)">
@@ -302,6 +303,20 @@
         <a-button slot="enterButton" type="primary">执行</a-button>
       </a-input-search>
     </a-drawer>
+    <a-drawer
+            width=560
+            placement="right"
+            @close="()=>{showConfig = false}"
+            :visible="showConfig"
+    >
+      <div slot="title" >Redis配置详情</div>
+      <a-list bordered style="max-height: 88vh; overflow: auto" :dataSource="configData">
+        <a-list-item slot="renderItem" slot-scope="item">
+          <a slot="actions">{{item.value}}</a>
+          {{item.key}}
+        </a-list-item>
+      </a-list>
+    </a-drawer>
     <a-modal v-model="showJson" :footer="null" :destroyOnClose="true" width="50vw" @ok="()=>{}">
       <json-view :data="jsonData" style="margin-top: 20px; overflow: auto; max-height: 72vh"/>
     </a-modal>
@@ -313,6 +328,7 @@
 import axios from "axios";
 import echarts from 'echarts'
 import jsonView from 'vue-json-views'
+import config from './config'
 
 Date.prototype.Format = function(fmt){
   var o = {
@@ -337,13 +353,7 @@ Date.prototype.Format = function(fmt){
   return fmt;
 };
 
-const wsProtocol = location.protocol === 'http:' ? 'ws:' : 'wss:'
-let base_url = location.origin, ws_url = `${wsProtocol}//${location.host}/ws`
 
-// let server = '47.52.140.130:8080'
-// let server = '127.0.0.1:51299'
-// let base_url = `http://${server}`
-// let ws_url = `ws://${server}/ws`
 
 export default {
   name: "app",
@@ -354,8 +364,8 @@ export default {
     return {
       // eslint-disable-next-line no-console
       log: console.log,
-      url: base_url,
-      ws_url: ws_url,
+      url: config.base_url,
+      ws_url: config.ws_url,
       redis_name: "",
       redis_ip: "",
       redis_db: 0,
@@ -382,6 +392,8 @@ export default {
       info_data: {},
       info_data_map: {},
       info_data_flags: {},
+      showConfig: false,
+      configData: [],
       logs_loading: false,
       logs_data: [],
       logs_columns: [{
@@ -694,17 +706,39 @@ export default {
           this.clients_loading = false
         })
     },
-    format_json(data) {
-      let json_data = data.split('接收')[1]
+    get_config() {
+      this.showConfig = true
+      this.configData = []
+      let comm = 'config get *'
+      axios.get(this.url + `/containers?method=execute&ip=${this.redis_ip}&command=${comm}`)
+        .then(result => {
+          let code = result.data.code;
+          if (code == 0) {
+            let output = result.data.data
+            for (let i = 0; i < output.length; i += 2) {
+              if (output[i] === 'client-output-buffer-limit') {
+                let buffers = output[i + 1].split(' ')
+                this.configData.push({'key': `${output[i]}-${buffers[0]}`, 'value': `${buffers[1]} ${buffers[2]} ${buffers[3]}`})
+                this.configData.push({'key': `${output[i]}-${buffers[4]}`, 'value': `${buffers[5]} ${buffers[6]} ${buffers[7]}`})
+                this.configData.push({'key': `${output[i]}-${buffers[8]}`, 'value': `${buffers[9]} ${buffers[10]} ${buffers[11]}`})
+              } else {
+                this.configData.push({'key': output[i], 'value': output[i + 1]})
+              }
+            }
+          }
+        })
+    },
+    format_json(json_data) {
+      // let json_data = data.split(' | ')[1]
       try {
         if (typeof JSON.parse(json_data) == "object") {
           this.jsonData = JSON.parse(json_data)
           this.showJson = true
         } else {
-          this.$message.error('不支持该类型数据转化为JSON')
+          this.$message.error('不支持该类型数据的JSON展示')
         }
       } catch(e) {
-        this.$message.error('不支持该类型数据转化为JSON')
+        this.$message.error('不支持该类型数据的JSON展示')
       }
     },
     delete_pubsub_output(index) {
@@ -720,7 +754,7 @@ export default {
         this.$message.error('请输入Channel再试')
         return
       }
-      axios.get(this.url + `/containers?method=publish&ip=${this.redis_ip}&key=${this.pubsub_key}&msg=${this.pubsub_msg}`)
+      axios.get(this.url + `/containers?method=publish&ip=${this.redis_ip}&key=${encodeURIComponent(this.pubsub_key)}&msg=${encodeURIComponent(this.pubsub_msg)}`)
         .then(result => {
           let res = result.data
           if (res.code != 0) {
@@ -931,7 +965,7 @@ export default {
           this.$forceUpdate()
           return
         }
-        this.redis_output[this.redis_ip] = this.circle_push(this.redis_output[this.redis_ip], `从 ${redata.msg} 接收 ${redata.data} \n`)
+        this.redis_output[this.redis_ip] = this.circle_push(this.redis_output[this.redis_ip], [redata.msg, redata.data])
         this.$forceUpdate()
       }
     },

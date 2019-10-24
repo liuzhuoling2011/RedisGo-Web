@@ -1,5 +1,5 @@
 module.exports = {
-    baseUrl: '/dist/',
+    publicPath: '/dist/',
     css: {
         loaderOptions: {
             less: {
