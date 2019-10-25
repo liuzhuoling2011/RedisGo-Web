@@ -189,7 +189,7 @@
             </a-col>
             <a-col :span="8" style="padding-top: 8px">
               <a-input v-model="pubsub_key" style="margin-bottom: 8px" placeholder="发布/订阅的Channel" />
-              <a-textarea v-model="pubsub_msg" :rows="10" style="margin-bottom: 8px" placeholder="需要发布的信息/naaaa" />
+              <a-textarea v-model="pubsub_msg" :rows="10" style="margin-bottom: 8px" :placeholder="pubsub_msg_placeholder" />
               <a-button type="primary" @click="publish_msg" style="background: #108ee9; border-color: #108ee9">发布</a-button>
               <a-button type="primary" @click="subscribe_msg" style="background: #87d068; border-color: #87d068; margin-left: 5px">订阅</a-button>
 
@@ -383,6 +383,7 @@ export default {
       publish_keys: {},
       pubsub_key: '',
       pubsub_msg: '',
+      pubsub_msg_placeholder: '需要发布的信息, 可以直接放上可读的Json, 例如:\n{\n  "ABC": [\n    "123456",\n    "234567",\n    "345678",\n  ],\n  "DEF": ["567890"]\n}',
       redis_output: {},
       redis_command: '',
       redis_command_output: '',
@@ -659,7 +660,7 @@ export default {
       websocket.onmessage = (e) => this.receiveData(e)
       this.websocket = websocket
     },
-    send_websocket_msg(json_data={'type':0}) {
+    send_websocket_msg(json_data={'type':0}) {  // type为0的时候是发心跳信号
       this.websocket.send(JSON.stringify(json_data));
     },
     websocket_get_redis_info() {
@@ -944,6 +945,7 @@ export default {
     },
     receiveData(e) {
       const redata = JSON.parse(e.data);
+      if (redata.type == 0) return
       if (redata.type == 1) {
         this.process_info_data(redata)
       } else if (redata.type == 2) {
