@@ -15,6 +15,7 @@
     "echarts": "^4.3.0",
     "less": "^3.10.3",
     "less-loader": "^5.0.0",
+    "moment": "^2.24.0",
     "vue": "^2.6.10",
     "vue-json-views": "^0.3.1"
   },

@@ -62,112 +62,10 @@
           </a-row>
         </div>
         <div v-show="memu_key=='redis_info'">
-          <a-row>
-            <a-col :span="16" style="padding-right: 10px">
-              <a-divider>高时延日志</a-divider>
-              <a-table rowKey="id" :columns="logs_columns" :loading="logs_loading" :dataSource="logs_data" :pagination="false" :scroll="{ y: 310 }" style="word-break: break-all">
-                <template slot="time" slot-scope="text">
-                  {{new Date(text*1000).Format("yyyy-MM-dd HH:mm:ss")}}
-                </template>
-              </a-table>
-              <a-divider>客户端列表</a-divider>
-              <a-table rowKey="id" :columns="clients_columns" :loading="clients_loading" :dataSource="clients_data" :pagination="{ pageSize: 50 }" :scroll="{ y: 268 }" >
-                <template slot="time" slot-scope="text">
-                  {{formatSeconds(text)}}
-                </template>
-              </a-table>
-            </a-col>
-            <a-col :span="8">
-              <a-collapse accordion activeKey="1" style="font-size: 15px">
-                <a-collapse-panel key="1">
-                  <template slot="header"><a-icon type="home" /> 服务端信息 | {{redis_ip}}</template>
-                  <a-card>
-                    <a-card-grid class="gridcard">版本信息: <a-tag color="green">{{info_data.redis_version}} | {{info_data.arch_bits}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard">PID | PORT: <a-tag color="green">{{info_data.process_id}} | {{info_data.tcp_port}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard">服务模式: {{info_data.redis_mode}}</a-card-grid>
-                    <a-card-grid class="gridcard">运行时间: {{formatSeconds(info_data.uptime_in_seconds)}}</a-card-grid>
-                    <a-card-grid class="gridcard">执行文件: {{info_data.executable}}</a-card-grid>
-                    <a-card-grid class="gridcard">配置文件: {{info_data.config_file}} <a-icon @click="get_config" type="info-circle" style="font-size: 16px; color: cornflowerblue"/></a-card-grid>
-                    <a-card-grid class="gridcard">系统版本: {{info_data.os}}</a-card-grid>
-                  </a-card>
-                </a-collapse-panel>
-                <a-collapse-panel key="2">
-                  <template slot="header"><a-icon type="user" /> 客户端信息</template>
-                  <a-card>
-                    <a-card-grid class="gridcard">已连接客户端的数量: <a-tag color="green">{{info_data.connected_clients}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard">阻塞的客户端的数量: <a-tag color="orange">{{info_data.blocked_clients}}</a-tag></a-card-grid>
-                  </a-card>
-                </a-collapse-panel>
-                <a-collapse-panel key="3">
-                  <template slot="header"><a-icon type="bar-chart" /> 统计信息</template>
-                  <a-card>
-                    <a-card-grid class="gridcard">已接受的连接请求数量: {{info_data.total_connections_received}}</a-card-grid>
-                    <a-card-grid class="gridcard">已执行的命令数量: {{info_data.total_commands_processed}}</a-card-grid>
-                    <a-card-grid class="gridcard">总流入数据量: {{info_data.total_net_input_bytes}}</a-card-grid>
-                    <a-card-grid class="gridcard">总流出数据量: {{info_data.total_net_output_bytes}}</a-card-grid>
-                    <a-card-grid class="gridcard">每秒流入数据量: {{info_data.instantaneous_input_kbps}}</a-card-grid>
-                    <a-card-grid class="gridcard">每秒流出数据量: {{info_data.instantaneous_output_kbps}}</a-card-grid>
-                    <a-card-grid class="gridcard">每秒执行命令数量: {{info_data.instantaneous_ops_per_sec}}</a-card-grid>
-                    <a-card-grid class="gridcard">过期删除的键: {{info_data.expired_keys}}</a-card-grid>
-                    <a-card-grid class="gridcard">驱逐(evict)的键数量: {{info_data.evicted_keys}}</a-card-grid>
-                    <a-card-grid class="gridcard">查找数据库键成功的次数: {{info_data.keyspace_hits}}</a-card-grid>
-                    <a-card-grid class="gridcard">订阅的频道数量: {{info_data.pubsub_channels}}</a-card-grid>
-                    <a-card-grid class="gridcard">订阅的模式数量: {{info_data.pubsub_patterns}}</a-card-grid>
-                    <a-card-grid class="gridcard">拒绝的连接请求数量: {{info_data.rejected_connections}}</a-card-grid>
-                  </a-card>
-                </a-collapse-panel>
-                <a-collapse-panel key="4">
-                  <template slot="header"><a-icon type="hdd" /> 持久信息</template>
-                  <a-card>
-                    <a-card-grid class="gridcard">AOF是否处于打开状态: {{info_data.aof_enabled}}</a-card-grid>
-                    <a-card-grid class="gridcard">AOF文件目前的大小: {{info_data.aof_current_size}}</a-card-grid>
-                    <a-card-grid class="gridcard">RDB文件最近保存时间: <br> {{new Date(info_data.rdb_last_save_time*1000).Format("yyyy-MM-dd HH:mm:ss")}}</a-card-grid>
-                  </a-card>
-                </a-collapse-panel>
-                <a-collapse-panel key="5">
-                  <template slot="header"><a-icon type="table" /> 内存信息</template>
-                  <a-card>
-                    <a-card-grid class="gridcard">系统内存: <a-tag color="green">{{info_data.total_system_memory_human}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard">占用内存: <a-tag color="blue">{{info_data.used_memory_human}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard">系统内存占用: {{info_data.used_memory_rss_human}}</a-card-grid>
-                    <a-card-grid class="gridcard">内存消耗峰值: {{info_data.used_memory_peak_human}}</a-card-grid>
-                    <a-card-grid class="gridcard">内存碎片率: {{info_data.mem_fragmentation_ratio}}</a-card-grid>
-                    <a-card-grid class="gridcard">内存分配器: {{info_data.mem_allocator}}</a-card-grid>
-                  </a-card>
-                </a-collapse-panel>
-                <a-collapse-panel key="6">
-                  <template slot="header"><a-icon type="laptop" /> 处理器信息</template>
-                  <a-card>
-                    <a-card-grid class="gridcard">系统CPU: <a-tag color="green">{{info_data.used_cpu_sys}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard">用户CPU: <a-tag color="blue">{{info_data.used_cpu_user}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard">后台进程系统CPU: {{info_data.used_cpu_sys_children}}</a-card-grid>
-                    <a-card-grid class="gridcard">后台进程用户CPU: {{info_data.used_cpu_user_children}}</a-card-grid>
-                  </a-card>
-                </a-collapse-panel>
-                <a-collapse-panel key="7">
-                  <template slot="header"><a-icon type="database" /> 键值信息</template>
-                  <a-card>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db0)>0">DB0: <a-tag color="green">{{format_db_nums(info_data.db0)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db1)>0">DB1: <a-tag color="green">{{format_db_nums(info_data.db1)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db2)>0">DB2: <a-tag color="green">{{format_db_nums(info_data.db2)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db3)>0">DB3: <a-tag color="green">{{format_db_nums(info_data.db3)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db4)>0">DB4: <a-tag color="green">{{format_db_nums(info_data.db4)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db5)>0">DB5: <a-tag color="green">{{format_db_nums(info_data.db5)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db6)>0">DB6: <a-tag color="green">{{format_db_nums(info_data.db6)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db7)>0">DB7: <a-tag color="green">{{format_db_nums(info_data.db7)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db8)>0">DB8: <a-tag color="green">{{format_db_nums(info_data.db8)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db9)>0">DB9: <a-tag color="green">{{format_db_nums(info_data.db9)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db10)>0">DB10: <a-tag color="green">{{format_db_nums(info_data.db10)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db11)>0">DB11: <a-tag color="green">{{format_db_nums(info_data.db11)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db12)>0">DB12: <a-tag color="green">{{format_db_nums(info_data.db12)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db13)>0">DB13: <a-tag color="green">{{format_db_nums(info_data.db13)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db14)>0">DB14: <a-tag color="green">{{format_db_nums(info_data.db14)}}</a-tag></a-card-grid>
-                    <a-card-grid class="gridcard25" v-if="format_db_nums(info_data.db15)>0">DB15: <a-tag color="green">{{format_db_nums(info_data.db15)}}</a-tag></a-card-grid>
-                  </a-card>
-                </a-collapse-panel>
-              </a-collapse>
-            </a-col>
-          </a-row>
+          <RedisInfo :redis_ip="redis_ip" :info_data="info_data"
+                     :clients_loading="clients_loading" :clients_data="clients_data"
+                     :logs_loading="logs_loading" :logs_data="logs_data">
+          </RedisInfo>
         </div>
         <div v-show="memu_key=='redis_pubsub'">
           <a-row style="padding-top: 10px">
@@ -303,20 +201,7 @@
         <a-button slot="enterButton" type="primary">执行</a-button>
       </a-input-search>
     </a-drawer>
-    <a-drawer
-            width=560
-            placement="right"
-            @close="()=>{showConfig = false}"
-            :visible="showConfig"
-    >
-      <div slot="title" >Redis配置详情</div>
-      <a-list bordered style="max-height: 88vh; overflow: auto" :dataSource="configData">
-        <a-list-item slot="renderItem" slot-scope="item">
-          <a slot="actions">{{item.value}}</a>
-          {{item.key}}
-        </a-list-item>
-      </a-list>
-    </a-drawer>
+
     <a-modal v-model="showJson" :footer="null" :destroyOnClose="true" width="50vw" @ok="()=>{}">
       <json-view :data="jsonData" style="margin-top: 20px; overflow: auto; max-height: 72vh"/>
     </a-modal>
@@ -325,45 +210,23 @@
 
 <script>
 
-import axios from "axios";
+import axios from "axios"
 import echarts from 'echarts'
+import moment from 'moment'
 import jsonView from 'vue-json-views'
+import RedisInfo from "./components/RedisInfo"
 import config from './config'
-
-Date.prototype.Format = function(fmt){
-  var o = {
-    "M+": this.getMonth()+1,
-    "d+": this.getDate(),
-    "H+": this.getHours(),
-    "m+": this.getMinutes(),
-    "s+": this.getSeconds(),
-    "S+": this.getMilliseconds()
-  };
-  //因为date.getFullYear()出来的结果是number类型的,所以为了让结果变成字符串型，下面有两种方法：
-  if(/(y+)/.test(fmt)){
-    //第一种：利用字符串连接符“+”给date.getFullYear()+""，加一个空字符串便可以将number类型转换成字符串。
-    fmt=fmt.replace(RegExp.$1,(this.getFullYear()+"").substr(4-RegExp.$1.length));
-  }
-  for(var k in o){
-    if (new RegExp("(" + k +")").test(fmt)){
-      //第二种：使用String()类型进行强制数据类型转换String(date.getFullYear())，这种更容易理解。
-      fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(String(o[k]).length)));
-    }
-  }
-  return fmt;
-};
-
-
 
 export default {
   name: "app",
   components: {
-    jsonView
+    jsonView, RedisInfo
   },
   data() {
     return {
       // eslint-disable-next-line no-console
       log: console.log,
+      moment: moment,
       url: config.base_url,
       ws_url: config.ws_url,
       redis_name: "",
@@ -393,55 +256,12 @@ export default {
       info_data: {},
       info_data_map: {},
       info_data_flags: {},
-      showConfig: false,
-      configData: [],
+
       logs_loading: false,
       logs_data: [],
-      logs_columns: [{
-        title: 'ID',
-        dataIndex: 'id',
-        width: 100,
-      }, {
-        title: '记录时间',
-        dataIndex: 'time',
-        width: 200,
-        scopedSlots: { customRender: 'time' },
-      }, {
-        title: '执行时间(微秒)',
-        dataIndex: 'time_used',
-        width: 150,
-      }, {
-        title: '日志详情',
-        dataIndex: 'msg',
-      }],
       clients_loading: false,
       clients_data: [],
-      clients_columns: [{
-        title: 'ID',
-        dataIndex: 'id',
-        width: 150,
-      }, {
-        title: '主机',
-        dataIndex: 'addr',
-        width: 200,
-      }, {
-        title: '连接时长',
-        dataIndex: 'age',
-        scopedSlots: { customRender: 'time' },
-        width: 150,
-      }, {
-        title: '数据库ID',
-        dataIndex: 'db',
-        width: 150,
-      }, {
-        title: '订阅频道',
-        dataIndex: 'sub',
-        width: 150,
-      }, {
-        title: '最近执行',
-        dataIndex: 'cmd',
-        width: 150,
-      }],
+
       websocket: null,
       websocket_ping: null,
       info_input_kbps: {},
@@ -707,28 +527,7 @@ export default {
           this.clients_loading = false
         })
     },
-    get_config() {
-      this.showConfig = true
-      this.configData = []
-      let comm = 'config get *'
-      axios.get(this.url + `/containers?method=execute&ip=${this.redis_ip}&command=${comm}`)
-        .then(result => {
-          let code = result.data.code;
-          if (code == 0) {
-            let output = result.data.data
-            for (let i = 0; i < output.length; i += 2) {
-              if (output[i] === 'client-output-buffer-limit') {
-                let buffers = output[i + 1].split(' ')
-                this.configData.push({'key': `${output[i]}-${buffers[0]}`, 'value': `${buffers[1]} ${buffers[2]} ${buffers[3]}`})
-                this.configData.push({'key': `${output[i]}-${buffers[4]}`, 'value': `${buffers[5]} ${buffers[6]} ${buffers[7]}`})
-                this.configData.push({'key': `${output[i]}-${buffers[8]}`, 'value': `${buffers[9]} ${buffers[10]} ${buffers[11]}`})
-              } else {
-                this.configData.push({'key': output[i], 'value': output[i + 1]})
-              }
-            }
-          }
-        })
-    },
+
     format_json(json_data) {
       // let json_data = data.split(' | ')[1]
       try {
@@ -880,7 +679,7 @@ export default {
             if (Array.isArray(output)) {
               output = output.join(', ')
             }
-            this.redis_command_output += `${new Date().Format("yyyy-MM-dd HH:mm:ss")}\t${output}\n`
+            this.redis_command_output += `${moment().format('YYYY-MM-DD HH:mm:ss')}\t${output}\n`
             const textarea = document.getElementById('redis_command_output');
             textarea.scrollTop = textarea.scrollHeight;
           }
@@ -897,45 +696,14 @@ export default {
       }
       return arr
     },
-    format_db_nums(str) {
-      if (str === undefined) return 0
-      if (str === "") return 0
-      let s = str.split(',')[0]
-      return s.split('=')[1]
-    },
-    formatSeconds(value) {
-      var secondTime = parseInt(value);// 秒
-      var minuteTime = 0;// 分
-      var hourTime = 0;// 小时
-      if(secondTime > 60) {//如果秒数大于60，将秒数转换成整数
-        //获取分钟，除以60取整数，得到整数分钟
-        minuteTime = parseInt(secondTime / 60);
-        //获取秒数，秒数取佘，得到整数秒数
-        secondTime = parseInt(secondTime % 60);
-        //如果分钟大于60，将分钟转换成小时
-        if(minuteTime > 60) {
-          //获取小时，获取分钟除以60，得到整数小时
-          hourTime = parseInt(minuteTime / 60);
-          //获取小时后取佘的分，获取分钟除以60取佘的分
-          minuteTime = parseInt(minuteTime % 60);
-        }
-      }
-      var result = "" + parseInt(secondTime) + "秒";
 
-      if(minuteTime > 0) {
-        result = "" + parseInt(minuteTime) + "分" + result;
-      }
-      if(hourTime > 0) {
-        result = "" + parseInt(hourTime) + "小时" + result;
-      }
-      return result;
-    },
+
     process_info_data(redata) {
       const ip = redata.msg
       const data = JSON.parse(redata.data)
       this.info_data_map[ip] = data
       this.info_data = this.info_data_map[this.redis_ip]
-      this.time_data[ip] = this.circle_push(this.time_data[ip], new Date().Format("HH:mm:ss"))
+      this.time_data[ip] = this.circle_push(this.time_data[ip], moment().format('HH:mm:ss'))
       this.info_input_kbps[ip] = this.circle_push(this.info_input_kbps[ip], data['instantaneous_input_kbps'])
       this.info_output_kbps[ip] = this.circle_push(this.info_output_kbps[ip], data['instantaneous_output_kbps'])
       this.info_used_memory[ip] = this.circle_push(this.info_used_memory[ip], data['used_memory'] / 1024)
