@@ -848,6 +848,22 @@ export default {
           this.updateVersion = []
         }
       })
+    axios.get(this.url + '/system?method=notice')
+      .then(result => {
+        let storage_key = 'redisgo_notice_time'
+        this.notices = JSON.parse(result.data.data).data
+        for (let i = 0; i < this.notices.length; i++) {
+          if (localStorage[storage_key] == null || localStorage[storage_key] < this.notices[i].CreatedAt) {
+            localStorage.setItem(storage_key, this.notices[i].CreatedAt);
+            this.$notification['success']({
+              top: 80,
+              duration: 10,
+              message: "温馨提示",
+              description: this.notices[i].Msg,
+            })
+          }
+        }
+      })
     this.reconnect_websocket()
     window.onbeforeunload = this.onDestroy
   },
