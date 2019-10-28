@@ -30,10 +30,10 @@
                   <a-icon class="ant-dropdown-link" type="setting" style="color: #ffffff; font-size: 28px; padding-top: 17px"/>
                   <a-menu slot="overlay" @click="settingClick">
                     <a-menu-item key="about"><a-icon type="info-circle"/>关于程序</a-menu-item>
-<!--                    <a-menu-item key="update"><a-icon type="info-circle"/>-->
-<!--                      <a-badge v-if="updateFlag" status="error">更新通知</a-badge>-->
-<!--                      <span v-else>更新通知</span>-->
-<!--                    </a-menu-item>-->
+                    <a-menu-item key="update"><a-icon type="reload"/>
+                      <a-badge v-if="updateFlag" status="error">更新通知</a-badge>
+                      <span v-else>更新通知</span>
+                    </a-menu-item>
                     <a-menu-item key="edit"><a-icon type="edit"/>连接管理</a-menu-item>
                   </a-menu>
                 </a-dropdown>
@@ -201,9 +201,19 @@
         <a-button slot="enterButton" type="primary">执行</a-button>
       </a-input-search>
     </a-drawer>
-
-    <a-modal v-model="showJson" :footer="null" :destroyOnClose="true" width="50vw" @ok="()=>{}">
+    <a-modal v-model="showJson" :footer="null" :destroyOnClose="true" width="50vw">
       <json-view :data="jsonData" style="margin-top: 20px; overflow: auto; max-height: 72vh"/>
+    </a-modal>
+    <a-modal v-model="showUpdate" :footer="null">
+      <div v-if="updateFlag" slot="title"><a-icon type="info-circle" style="color: orange"/> 可以升级的版本如下, 下载后请替换本程序</div>
+      <div v-else slot="title"><a-icon type="check-circle" style="color: green"/> 您目前使用的版本是最新的, 无需更新!</div>
+      <a-list itemLayout="horizontal" :dataSource="updateVersion">
+        <a-list-item slot="renderItem" slot-scope="item">
+          <a-list-item-meta>
+            <a slot="title" :href="item">{{item}}</a>
+          </a-list-item-meta>
+        </a-list-item>
+      </a-list>
     </a-modal>
   </div>
 </template>
@@ -252,6 +262,9 @@ export default {
       redis_command_output: '',
       command_visible: false,
       updateFlag: false,
+      updateVersion: [],
+      showUpdate: false,
+
       time_data: {},
       info_data: {},
       info_data_map: {},
@@ -454,11 +467,11 @@ export default {
           }, [
             h('img', {style: {width: '50%'}, attrs: {src: "http://qiniu.zoranjojo.top/zoranjojo.jpg"}}),
             h('p', '为更好的监控/管理内网的Redis而倾心打造'),
-            h('p', '可以关注公众号咨询问题或者获得最新的消息'),
+            h('p', '可以关注公众号或者Github获得最新的消息'),
           ]),
         })
       } else if (value.key === 'update') {
-        this.visible = true
+        this.showUpdate = true
       } else if (value.key === 'edit') {
         this.visible = true
       }
@@ -696,8 +709,6 @@ export default {
       }
       return arr
     },
-
-
     process_info_data(redata) {
       const ip = redata.msg
       const data = JSON.parse(redata.data)
@@ -822,7 +833,21 @@ export default {
         this.containers = data
         this.menuClick({key:'redis_info'})
       }
-    });
+    })
+    axios.get(this.url + '/system?method=update')
+      .then(result => {
+        this.updateVersion = JSON.parse(result.data.data).data.filename
+        if (this.updateVersion.length > 1) {
+          this.updateFlag = true
+          this.updateVersion.shift()
+          for (let i = 0; i < this.updateVersion.length; i++) {
+            this.updateVersion[i] = `http://${this.updateVersion[i]}`
+          }
+          this.updateVersion.reverse()
+        } else {
+          this.updateVersion = []
+        }
+      })
     this.reconnect_websocket()
     window.onbeforeunload = this.onDestroy
   },
