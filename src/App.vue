@@ -103,6 +103,10 @@ export default {
     ...mapActions(['initContainers']),
     menuClick(value) {
       this.memu_key = value.key
+      if (this.redis_ip === '') {
+        this.$message.error('未检测到有效的Redis连接, 请在右上角的设置中添加', 10);
+        return
+      }
       if (this.memu_key === 'redis_info') {
         this.$refs.infos.get_redis_infos()
       } else if (this.memu_key === 'redis_monitor') {
@@ -143,12 +147,12 @@ export default {
       this.$refs.commandline.showCommand()
     },
   },
-  created() {
+  async created() {
     this.initWS()
-    this.initContainers()
+    await this.initContainers()
+    this.menuClick({'key': 'redis_info'})
   },
   mounted() {
-    this.menuClick({'key': 'redis_info'})
   }
 };
 </script>

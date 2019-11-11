@@ -61,7 +61,7 @@ export default new Vuex.Store({
         websocket: null,
         websocket_ping: null,
 
-        containers: [],
+        containers: {},
 
         info_data: {},
         info_data_map: {},
@@ -166,12 +166,8 @@ export default new Vuex.Store({
                         commit('setRedisIPName', { 'redis_ip': redis_ip, 'redis_name': data[c]["name"] })
                     }
                 }
-                if (redis_ip === "") {
-                    await Vue.prototype.$message.error('未检测到有效的Redis连接, 请在右上角的设置中添加', 10);
-                } else {
-                    this.containers = data
+                if (redis_ip !== "") {
                     commit('setContainers', {'containers': data})
-                    // this.menuClick({key:'redis_monitor'})
                 }
             }
         }

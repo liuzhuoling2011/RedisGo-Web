@@ -25,32 +25,31 @@
                 @close="()=>{visible_children = false}"
                 :visible="visible_children"
         >
-            <a-input placeholder="连接IP" v-if="children_drawl_name=='修改连接'" size="large" v-model="container_tmp.ip" disabled>
+            <a-input placeholder="连接IP" @pressEnter="press_enter" v-if="children_drawl_name=='修改连接'" size="large" v-model="container_tmp.ip" disabled>
                 <a-icon slot="prefix" type="api" />
                 <a-icon v-if="container_tmp.ip" slot="suffix" type="close-circle" @click="()=>{container_tmp.ip = ''}" />
             </a-input>
-            <a-input placeholder="连接IP" v-else size="large" v-model="container_tmp.ip" @change="()=>{container_tmp.name = container_tmp.ip}">
+            <a-input placeholder="连接IP" @pressEnter="press_enter" v-else size="large" v-model="container_tmp.ip" @change="()=>{container_tmp.name = container_tmp.ip}">
                 <a-icon slot="prefix" type="api" />
                 <a-icon v-if="container_tmp.ip" slot="suffix" type="close-circle" @click="()=>{container_tmp.ip = ''}" />
             </a-input>
-            <a-input placeholder="连接名称" size="large" v-model="container_tmp.name" style="margin-top: 10px">
+            <a-input placeholder="连接名称" @pressEnter="press_enter" size="large" v-model="container_tmp.name" style="margin-top: 10px">
                 <a-icon slot="prefix" type="user" />
                 <a-icon v-if="container_tmp.name" slot="suffix" type="close-circle" @click="()=>{container_tmp.name = ''}" />
             </a-input>
-            <a-input placeholder="密码" size="large" v-model="container_tmp.password" style="margin-top: 10px">
+            <a-input placeholder="密码" @pressEnter="press_enter" size="large" v-model="container_tmp.password" style="margin-top: 10px">
                 <a-icon slot="prefix" type="warning" />
                 <a-icon v-if="container_tmp.password" slot="suffix" type="close-circle" @click="()=>{container_tmp.password = ''}" />
             </a-input>
-            <a-input placeholder="端口" size="large" v-model="container_tmp.port" style="margin-top: 10px">
+            <a-input placeholder="端口" @pressEnter="press_enter" size="large" v-model="container_tmp.port" style="margin-top: 10px">
                 <a-icon slot="prefix" type="appstore" />
                 <a-icon v-if="container_tmp.port" slot="suffix" type="close-circle" @click="()=>{container_tmp.port = ''}" />
             </a-input>
-            <a-input placeholder="DB" size="large" v-model="container_tmp.db" style="margin-top: 10px">
+            <a-input placeholder="DB" @pressEnter="press_enter" size="large" v-model="container_tmp.db" style="margin-top: 10px">
                 <a-icon slot="prefix" type="hdd" />
                 <a-icon v-if="container_tmp.db" slot="suffix" type="close-circle" @click="()=>{container_tmp.db = ''}" />
             </a-input>
-            <a-button type="primary" style="margin-top: 10px" v-if="children_drawl_name=='修改连接'" @click="upload_edit" :loading="visible_children_loading">确认</a-button>
-            <a-button type="primary" style="margin-top: 10px" v-else @click="upload_add" :loading="visible_children_loading">确认</a-button>
+            <a-button type="primary" style="margin-top: 10px" @click="press_enter" :loading="visible_children_loading">确认</a-button>
         </a-drawer>
     </div>
 </template>
@@ -132,7 +131,6 @@
                             this.visible_children = false
                             if (Object.keys(this.containers).length === 1) {
                                 this.setRedisIPName({'redis_ip': this.container_tmp.ip, 'redis_name': this.container_tmp.name})
-                                this.menuClick({key:'redis_info'})
                             }
                         }
                     })
@@ -146,12 +144,19 @@
                         if (res.code != 0) {
                             this.$message.error(res.msg)
                         } else {
-                            this.add_container({'ip': this.container_tmp.ip, 'container': res.data})
+                            this.addContainer({'ip': this.container_tmp.ip, 'container': res.data})
                             this.$message.success('修改成功')
                             this.visible_children = false
                         }
                     })
             },
+            press_enter() {
+                if (this.children_drawl_name === '修改连接') {
+                    this.upload_edit()
+                } else {
+                    this.upload_add()
+                }
+            }
         }
     }
 </script>
