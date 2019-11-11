@@ -127,68 +127,76 @@
 import axios from "axios"
 import moment from 'moment'
 import config from '../config'
+import utils from "../utils";
+import {mapState, mapMutations} from 'vuex'
+
 export default {
   name: 'RedisInfo',
-  props: {
-    redis_ip: String,
-    info_data: Object,
-    logs_loading: Boolean,
-    clients_loading: Boolean,
-    logs_data: Array,
-    clients_data: Array
-  },
   data() {
     return {
       url: config.base_url,
       moment: moment,
+      formatSeconds: utils.formatSeconds,
       showConfig: false,
       configData: [],
-      logs_columns: [{
-        title: 'ID',
-        dataIndex: 'id',
-        width: 100,
-      }, {
-        title: '记录时间',
-        dataIndex: 'time',
-        width: 200,
-        scopedSlots: { customRender: 'time' },
-      }, {
-        title: '执行时间(微秒)',
-        dataIndex: 'time_used',
-        width: 150,
-      }, {
-        title: '日志详情',
-        dataIndex: 'msg',
-      }],
-      clients_columns: [{
-        title: 'ID',
-        dataIndex: 'id',
-        width: 150,
-      }, {
-        title: '主机',
-        dataIndex: 'addr',
-        width: 200,
-      }, {
-        title: '连接时长',
-        dataIndex: 'age',
-        scopedSlots: { customRender: 'time' },
-        width: 150,
-      }, {
-        title: '数据库ID',
-        dataIndex: 'db',
-        width: 150,
-      }, {
-        title: '订阅频道',
-        dataIndex: 'sub',
-        width: 150,
-      }, {
-        title: '最近执行',
-        dataIndex: 'cmd',
-        width: 150,
-      }],
+      logs_loading: false,
+      clients_loading: false,
+      logs_data: [],
+      clients_data: [],
+      logs_columns: [
+        {
+          title: 'ID',
+          dataIndex: 'id',
+          width: 100,
+        }, {
+          title: '记录时间',
+          dataIndex: 'time',
+          width: 200,
+          scopedSlots: { customRender: 'time' },
+        }, {
+          title: '执行时间(微秒)',
+          dataIndex: 'time_used',
+          width: 150,
+        }, {
+          title: '日志详情',
+          dataIndex: 'msg',
+        }
+      ],
+      clients_columns: [
+        {
+          title: 'ID',
+          dataIndex: 'id',
+          width: 150,
+        }, {
+          title: '主机',
+          dataIndex: 'addr',
+          width: 200,
+        }, {
+          title: '连接时长',
+          dataIndex: 'age',
+          scopedSlots: { customRender: 'time' },
+          width: 150,
+        }, {
+          title: '数据库ID',
+          dataIndex: 'db',
+          width: 150,
+        }, {
+          title: '订阅频道',
+          dataIndex: 'sub',
+          width: 150,
+        }, {
+          title: '最近执行',
+          dataIndex: 'cmd',
+          width: 150,
+        }
+      ],
     }
   },
+  computed: {
+    ...mapState(['redis_ip', 'info_data']),
+  },
   methods: {
+    ...mapMutations(['setRedisInfo']),
     get_config() {
       this.showConfig = true
       this.configData = []
@@ -217,32 +225,32 @@ export default {
       let s = str.split(',')[0]
       return s.split('=')[1]
     },
-    formatSeconds(value) {
-      var secondTime = parseInt(value);// 秒
-      var minuteTime = 0;// 分
-      var hourTime = 0;// 小时
-      if(secondTime > 60) {//如果秒数大于60，将秒数转换成整数
-        //获取分钟，除以60取整数，得到整数分钟
-        minuteTime = parseInt(secondTime / 60);
-        //获取秒数，秒数取佘，得到整数秒数
-        secondTime = parseInt(secondTime % 60);
-        //如果分钟大于60，将分钟转换成小时
-        if(minuteTime > 60) {
-          //获取小时，获取分钟除以60，得到整数小时
-          hourTime = parseInt(minuteTime / 60);
-          //获取小时后取佘的分，获取分钟除以60取佘的分
-          minuteTime = parseInt(minuteTime % 60);
-        }
-      }
-      var result = "" + parseInt(secondTime) + "秒";
-
-      if(minuteTime > 0) {
-        result = "" + parseInt(minuteTime) + "分" + result;
-      }
-      if(hourTime > 0) {
-        result = "" + parseInt(hourTime) + "小时" + result;
-      }
-      return result;
+    get_info() {
+      axios.get(this.url + '/containers?method=info&ip=' + this.redis_ip)
+        .then(result => {
+          this.setRedisInfo({'info_data': result.data.data})
+        })
+    },
+    get_logs() {
+      this.logs_loading = true
+      axios.get(this.url + '/containers?method=logs&ip=' + this.redis_ip)
+        .then(result => {
+          this.logs_data = result.data.data;
+          this.logs_loading = false
+        })
+    },
+    get_clients() {
+      this.clients_loading = true
+      axios.get(this.url + '/containers?method=clients&ip=' + this.redis_ip)
+        .then(result => {
+          this.clients_data = result.data.data;
+          this.clients_loading = false
+        })
+    },
+    get_redis_infos() {
+      this.get_info()
+      this.get_logs()
+      this.get_clients()
     },
   }
 }
@@ -250,5 +258,12 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-
+  .gridcard {
+    width: 50%;
+    textAlign: 'left';
+  }
+  .gridcard25 {
+    width: 25%;
+    textAlign: 'left';
+  }
 </style>
