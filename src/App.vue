@@ -134,7 +134,7 @@ export default {
         this.info_data_flags[this.redis_ip] = true
       }
     },
-    change_redis(val) {
+    async change_redis(val) {
       this.setRedisIPName({'redis_ip': val})
       if (this.memu_key === 'redis_monitor') {
         this.websocket_get_redis_info()
@@ -142,7 +142,8 @@ export default {
       } else if (this.memu_key === 'redis_info') {
         this.$refs.infos.get_redis_infos()
       } else if (this.memu_key === 'redis_data') {
-        this.$refs.data.get_info()
+        await this.$refs.data.get_info()
+        await this.$refs.data.search_keys()
       }
     },
     show_command() {
@@ -152,7 +153,7 @@ export default {
   async created() {
     this.initWS()
     await this.initContainers()
-    this.menuClick({'key': 'redis_data'})
+    this.menuClick({'key': 'redis_info'})
   },
   mounted() {
   }

@@ -5,14 +5,14 @@
         <a-row :gutter="8" type="flex" justify="space-between">
           <a-col span="8">
             <a-tooltip title="数据库选择">
-              <a-select style="width: 100%" :value="redis_db" @change="(value)=>{redis_db=value}">
+              <a-select style="width: 100%" :value="redis_db" @change="change_db">
                 <a-select-option v-for="item in dbs" :value="item.value" v-bind:key="item.value">{{item.label}}</a-select-option>
               </a-select>
             </a-tooltip>
           </a-col>
           <a-col span="10">
             <a-tooltip title="请输入要搜索的Key">
-              <a-input-search style="width: 100%" v-model="search_key" placeholder="请输入要搜索的Key" @search="search_keys" enterButton />
+              <a-input-search style="width: 100%" v-model="search_key" placeholder="请输入要搜索的Key" @search="search_keys" />
             </a-tooltip>
           </a-col>
           <a-col span="6" style="text-align: right">
@@ -31,7 +31,7 @@
                   <a-tag v-if="item['type']==='set'" class="tagstyle" color="pink">Set</a-tag>
                   <a-tag v-if="item['type']==='zset'" class="tagstyle" color="red">ZSet</a-tag>
                   <a-tag v-if="item['type']==='hash'" class="tagstyle" color="cyan">Hash</a-tag>
-                  {{item['name'].length > 28 ? `${item['name'].slice(0, 28)}...` : item['name']}}
+                  {{item['name'].length > 25 ? `${item['name'].slice(0, 25)}...` : item['name']}}
                 </a-tooltip>
               </a>
             </a-list-item-meta>
@@ -44,16 +44,19 @@
         <a-row :gutter="8" type="flex" justify="space-between">
           <a-col span="8">
             <a-tooltip title="Key的名称">
-              <a-input-search style="width: 100%" placeholder="名称" v-model="temp_key_item.name" @search="rename_key">
-                <a-icon type="check" slot="enterButton"/>
-              </a-input-search>
+              <a-input-group>
+                <a-input :value="temp_key_item.type.toUpperCase()" style="width: 20%" disabled/>
+                <a-input style="width: 80%" placeholder="名称" v-model="temp_key_item.name" @pressEnter="rename_key">
+                  <a-icon type="check" slot="suffix" @click="rename_key"/>
+                </a-input>
+              </a-input-group>
             </a-tooltip>
           </a-col>
           <a-col span="3">
             <a-tooltip title="过期时间, -1 为永久, 单位: 秒">
-              <a-input-search style="width: 100%" placeholder="过期时间" v-model="temp_key_item.ttl" @search="update_ttl">
-                <a-icon type="check" slot="enterButton"/>
-              </a-input-search>
+              <a-input style="width: 100%" placeholder="过期时间" v-model="temp_key_item.ttl" @pressEnter="update_ttl">
+                <a-icon type="check" slot="suffix" @click="update_ttl"/>
+              </a-input>
             </a-tooltip>
           </a-col>
           <a-col span="4">
@@ -142,6 +145,16 @@ export default {
       let s = str.split(',')[0]
       return s.split('=')[1]
     },
+    async change_db(value) {
+      this.redis_db = value
+      const body = await config.myaxios.get(`data?method=select_db&ip=${this.redis_ip}&db=${this.redis_db}`)
+      if (body.status === 200 && body.data && body.data.code === 0) {
+        if (body.data.data === "OK") {
+          this.$message.success(`成功切换至DB${value}`)
+          await this.search_keys()
+        }
+      }
+    },
     async get_info() {
       const body = await config.myaxios.get(`containers?method=info&ip=${this.redis_ip}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
@@ -155,6 +168,10 @@ export default {
       }
     },
     async edit_value() {
+      if (this.temp_key_item.type === 'hash') {
+        this.$message.warning('暂不支持hash类型的编辑, 请耐心等待')
+        return
+      }
       this.edit_mode = true
       if (typeof this.temp_key_item.key_value === "object") {
         this.temp_key_item.key_value = JSON.stringify(this.temp_key_item.key_value, null, 4)
@@ -191,13 +208,12 @@ export default {
       await this.get_ttl()
       await this.get_key_value(this.origin_key_item.name, this.origin_key_item.type)
     },
-    async rename_key(value) {
-      const body = await config.myaxios.get(`data?method=rename&ip=${this.redis_ip}&key=${this.origin_key_item.name}&new_name=${value}`)
+    async rename_key() {
+      const body = await config.myaxios.get(`data?method=rename&ip=${this.redis_ip}&key=${this.origin_key_item.name}&new_name=${this.temp_key_item.name}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         if (body.data.data === true || body.data.data === "OK") {
           this.$message.success('重命名成功')
-          this.origin_key_item.name = value
-          this.temp_key_item.name = value
+          this.origin_key_item.name = this.temp_key_item.name
           await this.search_keys()
         } else {
           this.$message.error('重命名失败: ' + body.data.data)
@@ -231,8 +247,8 @@ export default {
       this.temp_key_item.type = item.type
       this.temp_key_item.name = item.name
       this.temp_key_item.len = item.len
-      if (item.type !== 'string' && item.type !== 'list') {
-        this.$message.warning('目前只支持string和list类型的数据')
+      if (item.type !== 'string' && item.type !== 'list' && item.type !== 'hash') {
+        this.$message.warning('目前只支持string, list和hash类型的数据')
         return
       }
       await this.get_key_value(item.name, item.type)
