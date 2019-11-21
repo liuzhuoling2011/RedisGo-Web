@@ -45,8 +45,8 @@
           <a-col span="8">
             <a-tooltip title="Key的名称">
               <a-input-group>
-                <a-input :value="temp_key_item.type.toUpperCase()" style="width: 20%" disabled/>
-                <a-input style="width: 80%" placeholder="名称" v-model="temp_key_item.name" @pressEnter="rename_key">
+                <a-input :value="temp_key_item.type.toUpperCase()" style="width: 22%" disabled/>
+                <a-input style="width: 75%" placeholder="名称" v-model="temp_key_item.name" @pressEnter="rename_key">
                   <a-icon type="check" slot="suffix" @click="rename_key"/>
                 </a-input>
               </a-input-group>
@@ -61,7 +61,7 @@
           </a-col>
           <a-col span="4">
             <a-button-group style="width: 100%">
-              <a-tooltip title="编辑内容">
+              <a-tooltip title="编辑内容" v-if="temp_key_item.type === 'string'">
                 <a-button icon="edit" @click="edit_value" style="width: 30%; color: blue"/>
               </a-tooltip>
               <a-tooltip title="刷新">
@@ -73,7 +73,7 @@
             </a-button-group>
           </a-col>
           <a-col span="5">
-            <a-button-group>
+            <a-button-group v-if="temp_key_item.type === 'string'">
               <a-tooltip title="以初始文字形式展示">
                 <a-button @click="show_text">Text</a-button>
               </a-tooltip>
@@ -91,13 +91,52 @@
           </a-col>
         </a-row>
         <div style="margin-top: 10px"/>
-        <div v-if="!edit_mode" style="max-height: 80vh; overflow: auto;">
-          <json-view v-if="json_view_flag" :data="temp_key_item.key_value" />
-          <pre v-else>{{temp_key_item.key_value}}</pre>
+        <div style="max-height: 80vh; overflow: auto;">
+          <div class="spin-content" v-if="present_spin">
+            <a-spin :spinning="present_spin"></a-spin>
+          </div>
+          <div v-else>
+            <div v-if="temp_key_item.type === 'string'">
+              <div v-if="!edit_mode" >
+                <json-view v-if="json_view_flag" :data="temp_key_item.key_value" />
+                <pre v-else>{{temp_key_item.key_value}}</pre>
+              </div>
+              <a-textarea v-else v-model="temp_key_item.key_value" :rows="60" style="max-height: 80vh; overflow: auto;" placeholder="暂无内容" />
+            </div>
+            <div v-if="temp_key_item.type === 'hash'">
+              <a-list bordered :dataSource="hash_key_value">
+                <a-list-item slot="renderItem" slot-scope="item">
+                  <a-list-item-meta :description="item[1]">
+                    <a slot="title">{{item[0]}}</a>
+                  </a-list-item-meta>
+                  <div slot="actions">
+                    <a-tag color="blue" @click="format_json(item[1])">JSON</a-tag>
+<!--                    <a-tag color="green" @click="format_json(item[1])">编辑</a-tag>-->
+<!--                    <a-tag color="red" @click="format_json(item[1])">删除</a-tag>-->
+                  </div>
+                </a-list-item>
+              </a-list>
+            </div>
+            <div v-if="temp_key_item.type === 'list' || temp_key_item.type === 'set'">
+              <a-list bordered :dataSource="temp_key_item.key_value">
+                <a-list-item slot="renderItem" slot-scope="item">
+                  <a-list-item-meta :description="item">
+                  </a-list-item-meta>
+                  <div slot="actions">
+                    <a-tag color="blue" @click="format_json(item)">JSON</a-tag>
+<!--                    <a-tag color="green" @click="format_json(item)">编辑</a-tag>-->
+<!--                    <a-tag color="red" @click="format_json(item)">删除</a-tag>-->
+                  </div>
+                </a-list-item>
+              </a-list>
+            </div>
+          </div>
         </div>
-        <a-textarea v-else v-model="temp_key_item.key_value" :rows="60" style="max-height: 80vh; overflow: auto;" placeholder="暂无内容" />
       </a-col>
     </a-row>
+    <a-modal v-model="showJsonModal" :footer="null" :destroyOnClose="true" width="50vw">
+      <json-view :data="jsonDataModal" style="margin-top: 20px; overflow: auto; max-height: 72vh"/>
+    </a-modal>
   </div>
 </template>
 
@@ -120,7 +159,10 @@ export default {
       search_key: "*",
       keys: [],
       present_mode: 'Text',
+      present_spin: false,
       json_view_flag: false,
+      jsonDataModal: null,
+      showJsonModal: false,
       edit_mode: false,
       origin_key_item: {name: "", type: 'None', len: 0, ttl: -1, key_value: '暂无内容'},
       temp_key_item: {name: "", type: 'None', len: 0, ttl: -1, key_value: '暂无内容'},
@@ -135,6 +177,13 @@ export default {
         all_db.push({'value': i, 'label': `DB${i} (${this.format_db_nums(this.info_data['db'+i])} keys)`})
       }
       return all_db
+    },
+    hash_key_value: function () {
+      let kvs = []
+      for (let i in this.temp_key_item.key_value) {
+        kvs.push([i, this.temp_key_item.key_value[i]]);
+      }
+      return kvs
     }
   },
   methods: {
@@ -168,10 +217,6 @@ export default {
       }
     },
     async edit_value() {
-      if (this.temp_key_item.type === 'hash') {
-        this.$message.warning('暂不支持hash类型的编辑, 请耐心等待')
-        return
-      }
       this.edit_mode = true
       if (typeof this.temp_key_item.key_value === "object") {
         this.temp_key_item.key_value = JSON.stringify(this.temp_key_item.key_value, null, 4)
@@ -247,18 +292,29 @@ export default {
       this.temp_key_item.type = item.type
       this.temp_key_item.name = item.name
       this.temp_key_item.len = item.len
-      if (item.type !== 'string' && item.type !== 'list' && item.type !== 'hash') {
-        this.$message.warning('目前只支持string, list和hash类型的数据')
+      if (item.type === 'zset') {
+        this.$message.warning('目前不支持zset类型的数据')
         return
       }
       await this.get_key_value(item.name, item.type)
       this.present_mode = 'Text'
     },
     async get_key_value(name, type) {
+      this.present_spin = true
       const body = await config.myaxios.get(`data?method=get_key_value&ip=${this.redis_ip}&key=${name}&type=${type}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
+        this.present_spin = false
         this.origin_key_item.key_value = body.data.data === null? [] : body.data.data
         this.temp_key_item.key_value = body.data.data === null? [] : body.data.data
+      }
+    },
+    format_json(json_data) {
+      let jsonData = utils.parse_json(json_data)
+      if (jsonData !== null) {
+        this.jsonDataModal = jsonData
+        this.showJsonModal = true
+      } else {
+        this.$message.error('不支持该类型数据的JSON展示')
       }
     },
     show_json() {
@@ -348,10 +404,14 @@ export default {
   width: 55px;
   text-align: center;
 }
-/*pre {*/
-/*  white-space: pre-wrap;*/
-/*  word-wrap: break-word;*/
-/*}*/
+.spin-content {
+  text-align: center;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  margin-bottom: 20px;
+  padding: 30px 50px;
+  margin: 20px 0;
+}
 pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; white-space: pre-wrap; word-wrap: break-word;}
 .string { color: green; }
 .number { color: darkorange; }
