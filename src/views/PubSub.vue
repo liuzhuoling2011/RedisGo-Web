@@ -70,6 +70,7 @@
 <script>
     import jsonView from 'vue-json-views'
     import config from '../config'
+    import utils from '../utils'
     import {mapState, mapMutations} from 'vuex'
     export default {
         name: "PubSub",
@@ -99,14 +100,11 @@
         methods: {
             ...mapMutations(['send_websocket_msg', 'set_pubsub_keys', 'remove_pubsub_output']),
             format_json(json_data) {
-                try {
-                    if (typeof JSON.parse(json_data) == "object") {
-                        this.jsonData = JSON.parse(json_data)
-                        this.showJson = true
-                    } else {
-                        this.$message.error('不支持该类型数据的JSON展示')
-                    }
-                } catch(e) {
+                let jsonData = utils.parse_json(json_data)
+                if (jsonData !== null) {
+                    this.jsonData = jsonData
+                    this.showJson = true
+                } else {
                     this.$message.error('不支持该类型数据的JSON展示')
                 }
             },

@@ -38,7 +38,20 @@ function formatSeconds(value) {
     return result;
 }
 
+function parse_json(json_data) {
+    try {
+        if (typeof JSON.parse(json_data) == "object") {
+            return JSON.parse(json_data)
+        } else {
+            return null
+        }
+    } catch(e) {
+        return null
+    }
+}
+
 export default {
     circle_push: circle_push,
-    formatSeconds: formatSeconds
+    formatSeconds: formatSeconds,
+    parse_json: parse_json,
 };

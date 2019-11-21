@@ -14,7 +14,7 @@
             >
               <a-menu-item key="redis_info"><a-icon type="info-circle" />系统详情</a-menu-item>
               <a-menu-item key="redis_monitor"><a-icon type="dashboard" />性能监控</a-menu-item>
-<!--              <a-menu-item key="2"><a-icon type="database" />数据信息</a-menu-item>-->
+              <a-menu-item key="redis_data"><a-icon type="database" />数据信息</a-menu-item>
               <a-menu-item key="redis_pubsub"><a-icon type="swap" />发布订阅</a-menu-item>
             </a-menu>
           </a-col>
@@ -42,9 +42,12 @@
           </a-col>
         </a-row>
       </a-layout-header>
-      <a-layout-content style="padding: 0 50px; height: 92vh">
+      <a-layout-content style="padding: 10px 50px; height: 92vh">
         <div v-show="memu_key=='redis_monitor'">
           <Charts ref="charts"></Charts>
+        </div>
+        <div v-show="memu_key=='redis_data'">
+          <Data ref="data"></Data>
         </div>
         <div v-show="memu_key=='redis_info'">
           <Infos ref="infos"></Infos>
@@ -52,10 +55,6 @@
         <div v-show="memu_key=='redis_pubsub'">
           <PubSub ref="pubsub"></PubSub>
         </div>
-<!--        <a-select :value="redis_db" @change="(value)=>{redis_db=value}" style="width: 120px">-->
-<!--          <a-select-option v-for="item in dbs" :value="item.value" v-bind:key="item.value">{{item.label}}</a-select-option>-->
-<!--        </a-select>-->
-
       </a-layout-content>
     </a-layout>
     <a-button shape="circle" icon="thunderbolt" size="large" @click="show_command" class="command-botton"/>
@@ -72,6 +71,7 @@
 import {mapState, mapMutations, mapActions } from 'vuex'
 
 import Infos from "./views/Infos"
+import Data from "./views/Data"
 import Charts from "./views/Charts"
 import PubSub from "./views/PubSub"
 
@@ -83,14 +83,11 @@ import CommandLine from "./components/CommandLine";
 export default {
   name: "app",
   components: {
-    Infos, Charts, PubSub,
+    Infos, Data, Charts, PubSub,
     About, Update, Manage, CommandLine
   },
   data() {
     return {
-      redis_db: 0,
-      dbs: [],
-
       memu_key: '',
       info_data_flags: {},
     }
@@ -101,7 +98,7 @@ export default {
   methods: {
     ...mapMutations(['setRedisIPName', 'initWS', 'send_websocket_msg']),
     ...mapActions(['initContainers']),
-    menuClick(value) {
+    async menuClick(value) {
       this.memu_key = value.key
       if (this.redis_ip === '') {
         this.$message.error('未检测到有效的Redis连接, 请在右上角的设置中添加', 10);
@@ -109,6 +106,9 @@ export default {
       }
       if (this.memu_key === 'redis_info') {
         this.$refs.infos.get_redis_infos()
+      } else if (this.memu_key === 'redis_data') {
+        await this.$refs.data.get_info()
+        await this.$refs.data.search_keys()
       } else if (this.memu_key === 'redis_monitor') {
         this.websocket_get_redis_info()
       } else if (this.memu_key === 'redis_pubsub') {
@@ -141,6 +141,8 @@ export default {
         this.$refs.charts.updateCharts()
       } else if (this.memu_key === 'redis_info') {
         this.$refs.infos.get_redis_infos()
+      } else if (this.memu_key === 'redis_data') {
+        this.$refs.data.get_info()
       }
     },
     show_command() {
@@ -150,7 +152,7 @@ export default {
   async created() {
     this.initWS()
     await this.initContainers()
-    this.menuClick({'key': 'redis_info'})
+    this.menuClick({'key': 'redis_data'})
   },
   mounted() {
   }
