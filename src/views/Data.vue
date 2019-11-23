@@ -1,7 +1,7 @@
 <template>
   <div>
     <a-row type="flex" justify="center">
-      <a-col span="6">
+      <a-col span="7">
         <a-row :gutter="8" type="flex" justify="space-between">
           <a-col span="8">
             <a-tooltip title="数据库选择">
@@ -31,13 +31,19 @@
                   <a-tag v-if="item['type']==='set'" class="tagstyle" color="pink">Set</a-tag>
                   <a-tag v-if="item['type']==='zset'" class="tagstyle" color="red">ZSet</a-tag>
                   <a-tag v-if="item['type']==='hash'" class="tagstyle" color="cyan">Hash</a-tag>
-                  {{item['name'].length > 25 ? `${item['name'].slice(0, 25)}...` : item['name']}}
+                  {{item['name'].length > 23 ? `${item['name'].slice(0, 23)}...` : item['name']}}
                 </a-tooltip>
               </a>
             </a-list-item-meta>
             <div slot="actions">Len: {{item['len']}} | TTL: {{formatSeconds(item['ttl'] / 1000000000)}}</div>
           </a-list-item>
         </a-list>
+        <div style="text-align: right; margin-top: 10px">
+          <a-button-group>
+            <a-button v-if="pre_key_flag" @click="search_keys(false, false)"> <a-icon type="left" /> Prev</a-button>
+            <a-button v-if="next_key_flag" @click="search_keys(false, true)"> Next<a-icon type="right"/></a-button>
+          </a-button-group>
+        </div>
       </a-col>
 
       <a-col offset="1" span="12">
@@ -84,6 +90,9 @@
                 <a-button @click="show_zip">Zip</a-button>
               </a-tooltip>
             </a-button-group>
+            <a-tooltip title="请输入要搜索的Key">
+              <a-input-search v-if="temp_key_item.type === 'hash'" style="width: 100%" v-model="hash_search_key" placeholder="请输入要搜索的Key" @search="hash_search_key_value" />
+            </a-tooltip>
           </a-col>
           <a-col span="4" style="text-align: right">
             <a-button type="primary" @click="comform_edit" v-if="edit_mode">确认</a-button>
@@ -104,7 +113,7 @@
               <a-textarea v-else v-model="temp_key_item.key_value" :rows="60" style="max-height: 80vh; overflow: auto;" placeholder="暂无内容" />
             </div>
             <div v-if="temp_key_item.type === 'hash'">
-              <a-list bordered :dataSource="hash_key_value">
+              <a-list bordered :dataSource="temp_key_item.key_value">
                 <a-list-item slot="renderItem" slot-scope="item">
                   <a-list-item-meta :description="item[1]">
                     <a slot="title">{{item[0]}}</a>
@@ -132,6 +141,12 @@
             </div>
           </div>
         </div>
+        <div style="text-align: right; margin-top: 10px">
+          <a-button-group>
+            <a-button v-if="pre_hash_key_flag" @click="hash_search_key_value(false, false)"> <a-icon type="left" /> Prev</a-button>
+            <a-button v-if="next_hash_key_flag" @click="hash_search_key_value(false, true)"> Next<a-icon type="right"/></a-button>
+          </a-button-group>
+        </div>
       </a-col>
     </a-row>
     <a-modal v-model="showJsonModal" :footer="null" :destroyOnClose="true" width="50vw">
@@ -156,9 +171,14 @@ export default {
       log: console.log,
       formatSeconds: utils.formatSeconds,
       redis_db: 0,
-      search_key: "*",
+      search_key: "",
+      key_cursors: [0],
+      key_count: 20,
       keys: [],
       present_mode: 'Text',
+      hash_cursors: [0],
+      hash_search_key: "",
+      value_count: 20,
       present_spin: false,
       json_view_flag: false,
       jsonDataModal: null,
@@ -178,12 +198,17 @@ export default {
       }
       return all_db
     },
-    hash_key_value: function () {
-      let kvs = []
-      for (let i in this.temp_key_item.key_value) {
-        kvs.push([i, this.temp_key_item.key_value[i]]);
-      }
-      return kvs
+    pre_key_flag: function () {
+      return this.key_cursors.length > 2
+    },
+    next_key_flag: function () {
+      return this.keys.length >= this.key_count
+    },
+    pre_hash_key_flag: function () {
+      return this.hash_cursors.length > 2
+    },
+    next_hash_key_flag: function () {
+      return this.temp_key_item.key_value.length >= this.value_count
     }
   },
   methods: {
@@ -210,10 +235,20 @@ export default {
         this.setRedisInfo({'info_data': body.data.data})
       }
     },
-    async search_keys() {
-      const body = await config.myaxios.get(`data?method=get_keys&ip=${this.redis_ip}&key=${this.search_key}`)
+    // hscan test_eaas_status_monitor 0 match * count 10
+    async search_keys(reset=true, search_next=true) {
+      if (reset) this.key_cursors = [0]
+      if (!search_next) {
+        this.key_cursors.pop()
+        this.key_cursors.pop()
+      }
+      let cursor = this.key_cursors[this.key_cursors.length - 1]
+      let match = this.search_key !== '' ? `*${this.search_key}*` : '*'
+      const body = await config.myaxios.get(`data?method=get_keys&ip=${this.redis_ip}&cursor=${cursor}&match=${match}&count=${this.key_count}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
-        this.keys = body.data.data === null? [] : body.data.data
+        let data = body.data.data
+        this.key_cursors.push(data.cursor)
+        this.keys = data.keys === null? [] : data.keys
       }
     },
     async edit_value() {
@@ -292,6 +327,8 @@ export default {
       this.temp_key_item.type = item.type
       this.temp_key_item.name = item.name
       this.temp_key_item.len = item.len
+
+      this.hash_search_key = ""
       if (item.type === 'zset') {
         this.$message.warning('目前不支持zset类型的数据')
         return
@@ -299,13 +336,38 @@ export default {
       await this.get_key_value(item.name, item.type)
       this.present_mode = 'Text'
     },
-    async get_key_value(name, type) {
+    async hash_search_key_value(reset=true, search_next=true) {
+      let match = this.hash_search_key === '' ? '*' : `*${this.hash_search_key}*`
+      await this.get_key_value(this.temp_key_item.name, this.temp_key_item.type, match, reset, search_next)
+    },
+    async get_key_value(name, type, match='*', reset=true, search_next=true) {
       this.present_spin = true
-      const body = await config.myaxios.get(`data?method=get_key_value&ip=${this.redis_ip}&key=${name}&type=${type}`)
-      if (body.status === 200 && body.data && body.data.code === 0) {
-        this.present_spin = false
-        this.origin_key_item.key_value = body.data.data === null? [] : body.data.data
-        this.temp_key_item.key_value = body.data.data === null? [] : body.data.data
+      if (type === 'hash') {
+        if (reset) this.hash_cursors = [0]
+        if (!search_next) {
+          this.hash_cursors.pop()
+          this.hash_cursors.pop()
+        }
+        let cursor = this.hash_cursors[this.hash_cursors.length - 1]
+        const body = await config.myaxios.get(`data?method=get_key_value&ip=${this.redis_ip}&key=${name}&type=${type}&cursor=${cursor}&match=${match}&count=${this.value_count}`)
+        if (body.status === 200 && body.data && body.data.code === 0) {
+          let data = body.data.data
+          this.present_spin = false
+          this.hash_cursors.push(data.cursor)
+          let hashData = []
+          for (let i = 0; i < data.keys.length - 1; i += 2) {
+            hashData.push([data.keys[i], data.keys[i+1]])
+          }
+          this.origin_key_item.key_value = data.keys === null? [] : hashData
+          this.temp_key_item.key_value = data.keys === null? [] : hashData
+        }
+      } else {
+        const body = await config.myaxios.get(`data?method=get_key_value&ip=${this.redis_ip}&key=${name}&type=${type}`)
+        if (body.status === 200 && body.data && body.data.code === 0) {
+          this.present_spin = false
+          this.origin_key_item.key_value = body.data.data === null? [] : body.data.data
+          this.temp_key_item.key_value = body.data.data === null? [] : body.data.data
+        }
       }
     },
     format_json(json_data) {
@@ -411,6 +473,9 @@ export default {
   margin-bottom: 20px;
   padding: 30px 50px;
   margin: 20px 0;
+}
+.ant-list-item-meta-description{
+  word-break: break-all;
 }
 pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; white-space: pre-wrap; word-wrap: break-word;}
 .string { color: green; }

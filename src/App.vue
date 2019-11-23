@@ -1,16 +1,16 @@
 <template>
-  <div id="app">
-    <a-layout id="components-layout-demo-top" class="layout">
+  <div id="app" style="height: 100%">
+    <a-layout id="components-layout-demo-top" style="height: 100%" class="layout">
       <a-layout-header>
         <div class="logo" />
         <a-row>
           <a-col :span="17">
             <a-menu
-                    theme="dark"
-                    mode="horizontal"
-                    @click="menuClick"
-                    :defaultSelectedKeys="['redis_info']"
-                    :style="{ lineHeight: '64px' }"
+              theme="dark"
+              mode="horizontal"
+              @click="menuClick"
+              :defaultSelectedKeys="['redis_info']"
+              :style="{ lineHeight: '64px' }"
             >
               <a-menu-item key="redis_info"><a-icon type="info-circle" />系统详情</a-menu-item>
               <a-menu-item key="redis_monitor"><a-icon type="dashboard" />性能监控</a-menu-item>
@@ -42,7 +42,7 @@
           </a-col>
         </a-row>
       </a-layout-header>
-      <a-layout-content style="padding: 10px 50px; height: 92vh">
+      <a-layout-content style="padding: 10px 50px;">
         <div v-show="memu_key=='redis_monitor'">
           <Charts ref="charts"></Charts>
         </div>
@@ -176,7 +176,7 @@ export default {
     position: absolute;
     right: 30px;
     bottom: 30px;
-    background: darkgray
+    background: white;
   }
   .command-botton:hover, .command-botton:focus {
     border-color: #fff;
