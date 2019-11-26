@@ -112,6 +112,19 @@
               </div>
               <a-textarea v-else v-model="temp_key_item.key_value" :rows="60" style="max-height: 80vh; overflow: auto;" placeholder="暂无内容" />
             </div>
+            <div v-if="temp_key_item.type === 'list'">
+              <a-list bordered :dataSource="temp_key_item.key_value">
+                <a-list-item slot="renderItem" slot-scope="item">
+                  <a-list-item-meta :description="item">
+                  </a-list-item-meta>
+                  <div slot="actions">
+                    <a-tag color="blue" @click="format_json(item)">JSON</a-tag>
+<!--                    <a-tag color="green" @click="format_json(item)">编辑</a-tag>-->
+<!--                    <a-tag color="red" @click="format_json(item)">删除</a-tag>-->
+                  </div>
+                </a-list-item>
+              </a-list>
+            </div>
             <div v-if="temp_key_item.type === 'hash'">
               <a-list bordered :dataSource="temp_key_item.key_value">
                 <a-list-item slot="renderItem" slot-scope="item">
@@ -126,7 +139,7 @@
                 </a-list-item>
               </a-list>
             </div>
-            <div v-if="temp_key_item.type === 'list' || temp_key_item.type === 'set'">
+            <div v-if="temp_key_item.type === 'set'">
               <a-list bordered :dataSource="temp_key_item.key_value">
                 <a-list-item slot="renderItem" slot-scope="item">
                   <a-list-item-meta :description="item">
@@ -142,10 +155,11 @@
           </div>
         </div>
         <div style="text-align: right; margin-top: 10px">
-          <a-button-group>
+          <a-button-group v-if="temp_key_item.type === 'hash'">
             <a-button v-if="pre_hash_key_flag" @click="hash_search_key_value(false, false)"> <a-icon type="left" /> Prev</a-button>
             <a-button v-if="next_hash_key_flag" @click="hash_search_key_value(false, true)"> Next<a-icon type="right"/></a-button>
           </a-button-group>
+          <a-pagination v-if="temp_key_item.type === 'list'" v-model="list_page"  @change="list_page_click" :defaultPageSize="value_count" :total="temp_key_item.len" />
         </div>
       </a-col>
     </a-row>
@@ -179,6 +193,7 @@ export default {
       hash_cursors: [0],
       hash_search_key: "",
       value_count: 20,
+      list_page: 1,
       present_spin: false,
       json_view_flag: false,
       jsonDataModal: null,
@@ -340,6 +355,11 @@ export default {
       let match = this.hash_search_key === '' ? '*' : `*${this.hash_search_key}*`
       await this.get_key_value(this.temp_key_item.name, this.temp_key_item.type, match, reset, search_next)
     },
+    async list_page_click(page) {
+      this.list_page = page
+      await this.get_key_value(this.temp_key_item.name, this.temp_key_item.type, '', false)
+      // this.log(page, pageSize)
+    },
     async get_key_value(name, type, match='*', reset=true, search_next=true) {
       this.present_spin = true
       if (type === 'hash') {
@@ -360,6 +380,16 @@ export default {
           }
           this.origin_key_item.key_value = data.keys === null? [] : hashData
           this.temp_key_item.key_value = data.keys === null? [] : hashData
+        }
+      } else if (type === 'list') {
+        if (reset) this.list_page = 1
+        let start = (this.list_page - 1) * this.value_count
+        let end = start + this.value_count - 1
+        const body = await config.myaxios.get(`data?method=get_key_value&ip=${this.redis_ip}&key=${name}&type=${type}&start=${start}&end=${end}`)
+        if (body.status === 200 && body.data && body.data.code === 0) {
+          this.present_spin = false
+          this.origin_key_item.key_value = body.data.data === null? [] : body.data.data
+          this.temp_key_item.key_value = body.data.data === null? [] : body.data.data
         }
       } else {
         const body = await config.myaxios.get(`data?method=get_key_value&ip=${this.redis_ip}&key=${name}&type=${type}`)

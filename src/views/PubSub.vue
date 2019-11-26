@@ -4,7 +4,12 @@
             <a-col :span="16" style="padding-right: 10px">
                 <div class="redis-output-container">
                     <a-list bordered :dataSource="redis_output[redis_ip]" >
-                        <div slot="header">Redis输出信息:</div>
+                        <div slot="header">
+                            <b>Redis输出信息:</b>
+                            <div style="width: 100%; text-align: right">
+                                <a-tag color="red" @click="delete_pubsub_output(-1)">清空信息</a-tag>
+                            </div>
+                        </div>
                         <a-list-item slot="renderItem" slot-scope="item, index">
                             <a-list-item-meta :description="item[1]" >
                                 <a slot="title">接收通道: {{item[0]}}</a>
@@ -24,7 +29,7 @@
                 <a-button type="primary" @click="subscribe_msg" style="background: #87d068; border-color: #87d068; margin-left: 5px">订阅</a-button>
 
                 <a-divider>发布列表</a-divider>
-                <div style="line-height: 2">
+                <div style="line-height: 2; max-height: 22vh; overflow: auto">
                     <template v-for="tag in publish_keys[redis_ip]">
                         <a-tooltip v-if="tag.length > 80" :key="tag" :title="tag">
                             <a-tag color="#108ee9" :key="tag" @click="copyPublishMsg(tag)" :closable="true" :afterClose="() => handlePubClose(tag)">
@@ -37,7 +42,7 @@
                     </template>
                 </div>
                 <a-divider>订阅列表</a-divider>
-                <div style="line-height: 2">
+                <div style="line-height: 2; max-height: 22vh; overflow: auto">
                     <template v-for="tag in subscribe_keys_show">
                         <a-tooltip v-if="tag.length > 80" :key="tag" :title="tag">
                             <a-tag color="#87d068" :key="tag" @click="()=>{pubsub_key = tag}" :closable="true" :afterClose="() => handleTagClose(tag)">
@@ -109,8 +114,11 @@
                 }
             },
             delete_pubsub_output(index) {
-                this.remove_pubsub_output({'index': index})
-                // this.$delete(this.redis_output[this.redis_ip], index)
+                if (index === -1) {
+                    this.remove_pubsub_output({'remove_all': true})
+                } else {
+                    this.remove_pubsub_output({'index': index})
+                }
             },
             publish_msg() {
                 if (this.redis_ip == "") {

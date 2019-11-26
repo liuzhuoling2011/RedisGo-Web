@@ -13,9 +13,9 @@
               :style="{ lineHeight: '64px' }"
             >
               <a-menu-item key="redis_info"><a-icon type="info-circle" />系统详情</a-menu-item>
-              <a-menu-item key="redis_monitor"><a-icon type="dashboard" />性能监控</a-menu-item>
               <a-menu-item key="redis_data"><a-icon type="database" />数据信息</a-menu-item>
               <a-menu-item key="redis_pubsub"><a-icon type="swap" />发布订阅</a-menu-item>
+              <a-menu-item key="redis_monitor"><a-icon type="dashboard" />性能监控</a-menu-item>
             </a-menu>
           </a-col>
           <a-col :span="5">

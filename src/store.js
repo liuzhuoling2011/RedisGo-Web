@@ -131,7 +131,11 @@ export default new Vuex.Store({
             }
         },
         remove_pubsub_output(state, payload) {
-            Vue.delete(state.redis_output[state.redis_ip], payload.index)
+            if (payload.remove_all) {
+                Vue.set(state.redis_output, state.redis_ip, [])
+            } else {
+                Vue.delete(state.redis_output[state.redis_ip], payload.index)
+            }
         },
         send_websocket_msg(state, json_data={'type': 0}) {  // type为0的时候是发心跳信号
             state.websocket.send(JSON.stringify(json_data));
