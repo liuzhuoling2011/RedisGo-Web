@@ -12,7 +12,7 @@
           </a-col>
           <a-col span="10">
             <a-tooltip title="请输入要搜索的Key">
-              <a-input-search style="width: 100%" v-model="search_key" placeholder="请输入要搜索的Key" @search="search_keys" />
+              <a-input-search style="width: 100%" v-model="search_key" placeholder="请输入要搜索的Key" @search="search_keys(true, true)" />
             </a-tooltip>
           </a-col>
           <a-col span="6" style="text-align: right">
@@ -52,7 +52,7 @@
             <a-tooltip title="Key的名称">
               <a-input-group>
                 <a-input :value="temp_key_item.type.toUpperCase()" style="width: 22%" disabled/>
-                <a-input style="width: 75%" placeholder="名称" v-model="temp_key_item.name" @pressEnter="rename_key">
+                <a-input style="width: 78%" placeholder="名称" v-model="temp_key_item.name" @pressEnter="rename_key">
                   <a-icon type="check" slot="suffix" @click="rename_key"/>
                 </a-input>
               </a-input-group>
@@ -114,13 +114,23 @@
             </div>
             <div v-if="temp_key_item.type === 'list'">
               <a-list bordered :dataSource="temp_key_item.key_value">
-                <a-list-item slot="renderItem" slot-scope="item">
-                  <a-list-item-meta :description="item">
+                <a-list-item slot="renderItem" slot-scope="item, index">
+                  <a-list-item-meta>
+                    <div slot="description">
+                      <a-textarea v-if="item[1]" v-model="item[0]" :rows="cal_textarea_lines(item[0])"></a-textarea>
+                      <span v-else>{{item[0]}}</span>
+                    </div>
                   </a-list-item-meta>
                   <div slot="actions">
-                    <a-tag color="blue" @click="format_json(item)">JSON</a-tag>
-<!--                    <a-tag color="green" @click="format_json(item)">编辑</a-tag>-->
-<!--                    <a-tag color="red" @click="format_json(item)">删除</a-tag>-->
+                    <div v-if="item[1]">
+                      <a-button shape="circle" icon="check" @click="conform_edit_list_value(index)"></a-button>
+                      <a-button shape="circle" icon="close" @click="cancel_edit_list_value(index)"></a-button>
+                    </div>
+                    <div v-else>
+                      <a-button type="link" @click="format_json(item[0])">JSON</a-button>
+                      <a-button shape="circle" icon="edit" @click="edit_list_value(index)"></a-button>
+                      <a-button shape="circle" type="danger" icon="delete" @click="delete_list_value(index)"></a-button>
+                    </div>
                   </div>
                 </a-list-item>
               </a-list>
@@ -138,11 +148,11 @@
                   <div slot="actions">
                     <div v-if="item[2]">
                       <a-button shape="circle" icon="check" @click="conform_edit_hash_value(item[0], index)"></a-button>
-                      <a-button shape="circle" icon="close" @click="cancel_edit_hash_value(item[0], index)"></a-button>
+                      <a-button shape="circle" icon="close" @click="cancel_edit_hash_value(index)"></a-button>
                     </div>
                     <div v-else>
                       <a-button type="link" @click="format_json(item[1])">JSON</a-button>
-                      <a-button shape="circle" icon="edit" @click="edit_hash_value(item[0], index)"></a-button>
+                      <a-button shape="circle" icon="edit" @click="edit_hash_value(index)"></a-button>
                       <a-button shape="circle" type="danger" icon="delete" @click="delete_hash_value(item[0], index)"></a-button>
                     </div>
                   </div>
@@ -311,7 +321,7 @@ export default {
       }
     },
     async comform_edit() {
-      await this.set_string_value(this.temp_key_item.name, this.temp_key_item.key_value)
+      await this.set_string_value(this.temp_key_item.key_value)
     },
     async refresh() {
       await this.get_ttl()
@@ -404,8 +414,15 @@ export default {
         const body = await config.myaxios.get(`data?method=get_key_value&ip=${this.redis_ip}&key=${name}&type=${type}&start=${start}&end=${end}`)
         if (body.status === 200 && body.data && body.data.code === 0) {
           this.present_spin = false
-          this.origin_key_item.key_value = body.data.data === null? [] : body.data.data
-          this.temp_key_item.key_value = body.data.data === null? [] : body.data.data
+          let data = body.data.data
+          let listData1 = []
+          let listData2 = []
+          for (let i = 0; i < data.length; i += 1) {
+            listData1.push([data[i], false])
+            listData2.push([data[i], false])
+          }
+          this.origin_key_item.key_value = listData1
+          this.temp_key_item.key_value = listData2
         }
       } else {
         const body = await config.myaxios.get(`data?method=get_key_value&ip=${this.redis_ip}&key=${name}&type=${type}`)
@@ -473,11 +490,16 @@ export default {
       this.temp_key_item.key_value = this.origin_key_item.key_value
       this.present_mode = 'Text'
     },
-    async set_string_value(key, value) {
-      const body = await config.myaxios.get(`data?method=string_ops&ops=set&ip=${this.redis_ip}&key=${key}&value=${value}`)
+    async set_string_value(value) {
+      const body = await config.myaxios.get(`data?method=string_ops&ops=set&ip=${this.redis_ip}&key=${this.temp_key_item.name}&value=${value}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         if (body.data.data === "OK") {
           this.$message.success("修改成功")
+          this.edit_mode = false
+          if (this.present_mode === 'Json') {
+            this.temp_key_item.key_value = JSON.parse(value)
+          }
+          this.origin_key_item.key_value = value
         }
       }
     },
@@ -487,23 +509,36 @@ export default {
         this.log(body.data.data)
       }
     },
-    async delete_list_value(key, pos) {
-      const body = await config.myaxios.get(`data?method=list_ops&ops=delete&ip=${this.redis_ip}&key=${key}&pos=${pos}`)
+    async delete_list_value(pos) {
+      let list_pos = (this.list_page - 1) * this.value_count + pos
+      const body = await config.myaxios.get(`data?method=list_ops&ops=delete&ip=${this.redis_ip}&key=${this.temp_key_item.name}&pos=${list_pos}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
-        this.log(body.data.data)
+        this.$message.success('删除成功')
+        this.temp_key_item.key_value.splice(pos, 1)
       }
     },
-    async set_list_value(key, pos, value) {
-      const body = await config.myaxios.get(`data?method=list_ops&ops=set&&ip=${this.redis_ip}&key=${key}&pos=${pos}&value=${value}`)
+    async edit_list_value(pos) {
+      this.temp_key_item.key_value[pos].splice(1, 1, true)
+    },
+    async conform_edit_list_value(pos) {
+      let list_pos = (this.list_page - 1) * this.value_count + pos
+      let new_value = this.temp_key_item.key_value[pos][0]
+      const body = await config.myaxios.get(`data?method=list_ops&ops=set&&ip=${this.redis_ip}&key=${this.temp_key_item.name}&pos=${list_pos}&value=${new_value}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
-        this.log(body.data.data)
+        this.$message.success('修改成功')
+        this.temp_key_item.key_value[pos].splice(1, 1, false)
+        this.origin_key_item.key_value[pos].splice(0, 1, this.temp_key_item.key_value[pos][0])
       }
     },
-    async cancel_edit_hash_value(hash_key, index) {
+    async cancel_edit_list_value(index) {
+      this.temp_key_item.key_value[index].splice(1, 1, false)
+      this.temp_key_item.key_value[index].splice(0, 1, this.origin_key_item.key_value[index][0])
+    },
+    async cancel_edit_hash_value(index) {
       this.temp_key_item.key_value[index].splice(2, 1, false)
       this.temp_key_item.key_value[index].splice(1, 1, this.origin_key_item.key_value[index][1])
     },
-    async edit_hash_value(hash_key, index) {
+    async edit_hash_value(index) {
       this.temp_key_item.key_value[index].splice(2, 1, true)
     },
     async conform_edit_hash_value(hash_key, index) {
@@ -512,6 +547,7 @@ export default {
       if (body.status === 200 && body.data && body.data.code === 0) {
         this.$message.success('修改成功')
         this.temp_key_item.key_value[index].splice(2, 1, false)
+        this.origin_key_item.key_value[index].splice(1, 1, this.temp_key_item.key_value[index][1])
       }
     },
     async delete_hash_value(hash_key, index) {
