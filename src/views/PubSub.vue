@@ -15,8 +15,8 @@
                                 <a slot="title">接收通道: {{item[0]}}</a>
                             </a-list-item-meta>
                             <div slot="actions">
-                                <a-tag color="blue" @click="format_json(item[1])">JSON</a-tag>
-                                <a-tag color="red" @click="delete_pubsub_output(index)">X</a-tag>
+                                <a-button type="link" @click="format_json(item[1])">JSON</a-button>
+                                <a-button shape="circle" type="danger" icon="delete" @click="delete_pubsub_output(index)"></a-button>
                             </div>
                         </a-list-item>
                     </a-list>

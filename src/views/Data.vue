@@ -101,10 +101,10 @@
         </a-row>
         <div style="margin-top: 10px"/>
         <div style="max-height: 80vh; overflow: auto;">
-          <div class="spin-content" v-if="present_spin">
+          <div class="spin-content" v-show="present_spin">
             <a-spin :spinning="present_spin"></a-spin>
           </div>
-          <div v-else>
+          <div v-show="!present_spin">
             <div v-if="temp_key_item.type === 'string'">
               <div v-if="!edit_mode" >
                 <json-view v-if="json_view_flag" :data="temp_key_item.key_value" />
@@ -127,14 +127,24 @@
             </div>
             <div v-if="temp_key_item.type === 'hash'">
               <a-list bordered :dataSource="temp_key_item.key_value">
-                <a-list-item slot="renderItem" slot-scope="item">
-                  <a-list-item-meta :description="item[1]">
+                <a-list-item slot="renderItem" slot-scope="item, index">
+                  <a-list-item-meta>
                     <a slot="title">{{item[0]}}</a>
+                    <div slot="description">
+                      <a-textarea v-if="item[2]" v-model="item[1]" :rows="cal_textarea_lines(item[1])"></a-textarea>
+                      <span v-else>{{item[1]}}</span>
+                    </div>
                   </a-list-item-meta>
                   <div slot="actions">
-                    <a-tag color="blue" @click="format_json(item[1])">JSON</a-tag>
-<!--                    <a-tag color="green" @click="format_json(item[1])">编辑</a-tag>-->
-<!--                    <a-tag color="red" @click="format_json(item[1])">删除</a-tag>-->
+                    <div v-if="item[2]">
+                      <a-button shape="circle" icon="check" @click="conform_edit_hash_value(item[0], index)"></a-button>
+                      <a-button shape="circle" icon="close" @click="cancel_edit_hash_value(item[0], index)"></a-button>
+                    </div>
+                    <div v-else>
+                      <a-button type="link" @click="format_json(item[1])">JSON</a-button>
+                      <a-button shape="circle" icon="edit" @click="edit_hash_value(item[0], index)"></a-button>
+                      <a-button shape="circle" type="danger" icon="delete" @click="delete_hash_value(item[0], index)"></a-button>
+                    </div>
                   </div>
                 </a-list-item>
               </a-list>
@@ -223,11 +233,15 @@ export default {
       return this.hash_cursors.length > 2
     },
     next_hash_key_flag: function () {
-      return this.temp_key_item.key_value.length >= this.value_count
+      return (this.temp_key_item.key_value.length >= this.value_count)
+          && (this.hash_cursors[this.hash_cursors.length - 1] !== 0)
     }
   },
   methods: {
     ...mapMutations(['setRedisInfo']),
+    cal_textarea_lines(content) {
+      return parseInt(content.length / 100.0) + 1
+    },
     format_db_nums(str) {
       if (str === undefined) return 0
       if (str === "") return 0
@@ -374,12 +388,14 @@ export default {
           let data = body.data.data
           this.present_spin = false
           this.hash_cursors.push(data.cursor)
-          let hashData = []
+          let hashData1 = []
+          let hashData2 = []
           for (let i = 0; i < data.keys.length - 1; i += 2) {
-            hashData.push([data.keys[i], data.keys[i+1]])
+            hashData1.push([data.keys[i], data.keys[i+1], false])
+            hashData2.push([data.keys[i], data.keys[i+1], false])
           }
-          this.origin_key_item.key_value = data.keys === null? [] : hashData
-          this.temp_key_item.key_value = data.keys === null? [] : hashData
+          this.origin_key_item.key_value = hashData1
+          this.temp_key_item.key_value = hashData2
         }
       } else if (type === 'list') {
         if (reset) this.list_page = 1
@@ -482,8 +498,31 @@ export default {
       if (body.status === 200 && body.data && body.data.code === 0) {
         this.log(body.data.data)
       }
+    },
+    async cancel_edit_hash_value(hash_key, index) {
+      this.temp_key_item.key_value[index].splice(2, 1, false)
+      this.temp_key_item.key_value[index].splice(1, 1, this.origin_key_item.key_value[index][1])
+    },
+    async edit_hash_value(hash_key, index) {
+      this.temp_key_item.key_value[index].splice(2, 1, true)
+    },
+    async conform_edit_hash_value(hash_key, index) {
+      let new_value = this.temp_key_item.key_value[index][1]
+      const body = await config.myaxios.get(`data?method=hash_ops&ops=set&&ip=${this.redis_ip}&key=${this.temp_key_item.name}&hash_key=${hash_key}&value=${new_value}`)
+      if (body.status === 200 && body.data && body.data.code === 0) {
+        this.$message.success('修改成功')
+        this.temp_key_item.key_value[index].splice(2, 1, false)
+      }
+    },
+    async delete_hash_value(hash_key, index) {
+      const body = await config.myaxios.get(`data?method=hash_ops&ops=delete&&ip=${this.redis_ip}&key=${this.temp_key_item.name}&hash_key=${hash_key}`)
+      if (body.status === 200 && body.data && body.data.code === 0) {
+        if (body.data.data === 1) {
+          this.$message.success('删除成功')
+          this.temp_key_item.key_value.splice(index, 1)
+        }
+      }
     }
-
   },
   mounted() {
   }
