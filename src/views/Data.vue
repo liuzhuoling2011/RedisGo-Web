@@ -91,7 +91,9 @@
               </a-tooltip>
             </a-button-group>
             <a-tooltip title="请输入要搜索的Key">
-              <a-input-search v-if="temp_key_item.type === 'hash'" style="width: 100%" v-model="hash_search_key" placeholder="请输入要搜索的Key" @search="hash_search_key_value" />
+              <a-input-search v-if="['hash', 'set', 'zset'].includes(temp_key_item.type)"
+                              style="width: 100%" v-model="value_search_key"
+                              placeholder="请输入要搜索的Key" @search="value_search_key_value(true, true)" />
             </a-tooltip>
           </a-col>
           <a-col span="4" style="text-align: right">
@@ -112,34 +114,11 @@
               </div>
               <a-textarea v-else v-model="temp_key_item.key_value" :rows="60" style="max-height: 80vh; overflow: auto;" placeholder="暂无内容" />
             </div>
-            <div v-if="temp_key_item.type === 'list'">
+            <div v-if="['list', 'hash', 'set', 'zset'].includes(temp_key_item.type)">
               <a-list bordered :dataSource="temp_key_item.key_value">
                 <a-list-item slot="renderItem" slot-scope="item, index">
                   <a-list-item-meta>
-                    <div slot="description">
-                      <a-textarea v-if="item[1]" v-model="item[0]" :rows="cal_textarea_lines(item[0])"></a-textarea>
-                      <span v-else>{{item[0]}}</span>
-                    </div>
-                  </a-list-item-meta>
-                  <div slot="actions">
-                    <div v-if="item[1]">
-                      <a-button shape="circle" icon="check" @click="conform_edit_list_value(index)"></a-button>
-                      <a-button shape="circle" icon="close" @click="cancel_edit_list_value(index)"></a-button>
-                    </div>
-                    <div v-else>
-                      <a-button type="link" @click="format_json(item[0])">JSON</a-button>
-                      <a-button shape="circle" icon="edit" @click="edit_list_value(index)"></a-button>
-                      <a-button shape="circle" type="danger" icon="delete" @click="delete_list_value(index)"></a-button>
-                    </div>
-                  </div>
-                </a-list-item>
-              </a-list>
-            </div>
-            <div v-if="temp_key_item.type === 'hash'">
-              <a-list bordered :dataSource="temp_key_item.key_value">
-                <a-list-item slot="renderItem" slot-scope="item, index">
-                  <a-list-item-meta>
-                    <a slot="title">{{item[0]}}</a>
+                    <a slot="title" v-if="temp_key_item.type === 'hash' || temp_key_item.type === 'zset'">{{item[0]}}</a>
                     <div slot="description">
                       <a-textarea v-if="item[2]" v-model="item[1]" :rows="cal_textarea_lines(item[1])"></a-textarea>
                       <span v-else>{{item[1]}}</span>
@@ -147,27 +126,14 @@
                   </a-list-item-meta>
                   <div slot="actions">
                     <div v-if="item[2]">
-                      <a-button shape="circle" icon="check" @click="conform_edit_hash_value(item[0], index)"></a-button>
-                      <a-button shape="circle" icon="close" @click="cancel_edit_hash_value(index)"></a-button>
+                      <a-button shape="circle" icon="check" @click="conform_edit_item_value(index)"></a-button>
+                      <a-button shape="circle" icon="close" @click="cancel_edit_item_value(index)"></a-button>
                     </div>
                     <div v-else>
-                      <a-button type="link" @click="format_json(item[1])">JSON</a-button>
-                      <a-button shape="circle" icon="edit" @click="edit_hash_value(index)"></a-button>
-                      <a-button shape="circle" type="danger" icon="delete" @click="delete_hash_value(item[0], index)"></a-button>
+                      <a-button type="link" v-if="temp_key_item.type !== 'zset'" @click="format_json(item[1])">JSON</a-button>
+                      <a-button shape="circle" icon="edit" @click="edit_item_value(index)"></a-button>
+                      <a-button shape="circle" type="danger" icon="delete" @click="delete_item_value(index)"></a-button>
                     </div>
-                  </div>
-                </a-list-item>
-              </a-list>
-            </div>
-            <div v-if="temp_key_item.type === 'set'">
-              <a-list bordered :dataSource="temp_key_item.key_value">
-                <a-list-item slot="renderItem" slot-scope="item">
-                  <a-list-item-meta :description="item">
-                  </a-list-item-meta>
-                  <div slot="actions">
-                    <a-tag color="blue" @click="format_json(item)">JSON</a-tag>
-<!--                    <a-tag color="green" @click="format_json(item)">编辑</a-tag>-->
-<!--                    <a-tag color="red" @click="format_json(item)">删除</a-tag>-->
                   </div>
                 </a-list-item>
               </a-list>
@@ -175,9 +141,9 @@
           </div>
         </div>
         <div style="text-align: right; margin-top: 10px">
-          <a-button-group v-if="temp_key_item.type === 'hash'">
-            <a-button v-if="pre_hash_key_flag" @click="hash_search_key_value(false, false)"> <a-icon type="left" /> Prev</a-button>
-            <a-button v-if="next_hash_key_flag" @click="hash_search_key_value(false, true)"> Next<a-icon type="right"/></a-button>
+          <a-button-group v-if="temp_key_item.type === 'hash' || temp_key_item.type === 'set'">
+            <a-button v-if="pre_value_page_flag" @click="value_search_key_value(false, false)"> <a-icon type="left" /> Prev</a-button>
+            <a-button v-if="next_value_page_flag" @click="value_search_key_value(false, true)"> Next<a-icon type="right"/></a-button>
           </a-button-group>
           <a-pagination v-if="temp_key_item.type === 'list'" v-model="list_page"  @change="list_page_click" :defaultPageSize="value_count" :total="temp_key_item.len" />
         </div>
@@ -210,8 +176,8 @@ export default {
       key_count: 20,
       keys: [],
       present_mode: 'Text',
-      hash_cursors: [0],
-      hash_search_key: "",
+      value_cursors: [0],
+      value_search_key: "",
       value_count: 20,
       list_page: 1,
       present_spin: false,
@@ -239,13 +205,13 @@ export default {
     next_key_flag: function () {
       return this.keys.length >= this.key_count
     },
-    pre_hash_key_flag: function () {
-      return this.hash_cursors.length > 2
+    pre_value_page_flag: function () {
+      return this.value_cursors.length > 2
     },
-    next_hash_key_flag: function () {
+    next_value_page_flag: function () {
       return (this.temp_key_item.key_value.length >= this.value_count)
-          && (this.hash_cursors[this.hash_cursors.length - 1] !== 0)
-    }
+          && (this.value_cursors[this.value_cursors.length - 1] !== 0)
+    },
   },
   methods: {
     ...mapMutations(['setRedisInfo']),
@@ -274,7 +240,6 @@ export default {
         this.setRedisInfo({'info_data': body.data.data})
       }
     },
-    // hscan test_eaas_status_monitor 0 match * count 10
     async search_keys(reset=true, search_next=true) {
       if (reset) this.key_cursors = [0]
       if (!search_next) {
@@ -317,7 +282,7 @@ export default {
     cancel_edit() {
       this.edit_mode = false
       if (this.present_mode === 'Json') {
-        this.temp_key_item.key_value = JSON.parse(this.temp_key_item.key_value)
+        this.temp_key_item.key_value = JSON.parse(this.origin_key_item.key_value)
       }
     },
     async comform_edit() {
@@ -326,6 +291,9 @@ export default {
     async refresh() {
       await this.get_ttl()
       await this.get_key_value(this.origin_key_item.name, this.origin_key_item.type)
+      if (this.present_mode === 'Json') {
+        this.temp_key_item.key_value = JSON.parse(this.temp_key_item.key_value)
+      }
     },
     async rename_key() {
       const body = await config.myaxios.get(`data?method=rename&ip=${this.redis_ip}&key=${this.origin_key_item.name}&new_name=${this.temp_key_item.name}`)
@@ -367,45 +335,47 @@ export default {
       this.temp_key_item.name = item.name
       this.temp_key_item.len = item.len
 
-      this.hash_search_key = ""
-      if (item.type === 'zset') {
-        this.$message.warning('目前不支持zset类型的数据')
-        return
-      }
+      this.value_search_key = ""
       await this.get_key_value(item.name, item.type)
       this.present_mode = 'Text'
     },
-    async hash_search_key_value(reset=true, search_next=true) {
-      let match = this.hash_search_key === '' ? '*' : `*${this.hash_search_key}*`
+    async value_search_key_value(reset=true, search_next=true) {
+      let match = this.value_search_key === '' ? '*' : `*${this.value_search_key}*`
       await this.get_key_value(this.temp_key_item.name, this.temp_key_item.type, match, reset, search_next)
     },
     async list_page_click(page) {
       this.list_page = page
       await this.get_key_value(this.temp_key_item.name, this.temp_key_item.type, '', false)
-      // this.log(page, pageSize)
     },
     async get_key_value(name, type, match='*', reset=true, search_next=true) {
       this.present_spin = true
-      if (type === 'hash') {
-        if (reset) this.hash_cursors = [0]
+      if (type === 'hash' || type === 'set' || type === 'zset') {
+        if (reset) this.value_cursors = [0]
         if (!search_next) {
-          this.hash_cursors.pop()
-          this.hash_cursors.pop()
+          this.value_cursors.pop()
+          this.value_cursors.pop()
         }
-        let cursor = this.hash_cursors[this.hash_cursors.length - 1]
+        let cursor = this.value_cursors[this.value_cursors.length - 1]
         const body = await config.myaxios.get(`data?method=get_key_value&ip=${this.redis_ip}&key=${name}&type=${type}&cursor=${cursor}&match=${match}&count=${this.value_count}`)
         if (body.status === 200 && body.data && body.data.code === 0) {
           let data = body.data.data
           this.present_spin = false
-          this.hash_cursors.push(data.cursor)
-          let hashData1 = []
-          let hashData2 = []
-          for (let i = 0; i < data.keys.length - 1; i += 2) {
-            hashData1.push([data.keys[i], data.keys[i+1], false])
-            hashData2.push([data.keys[i], data.keys[i+1], false])
+          this.value_cursors.push(data.cursor)
+          let valueData1 = []
+          let valueData2 = []
+          if (type === 'hash' || type === 'zset') {
+            for (let i = 0; i < data.keys.length - 1; i += 2) {
+              valueData1.push([data.keys[i], data.keys[i+1], false])
+              valueData2.push([data.keys[i], data.keys[i+1], false])
+            }
+          } else if (type === 'set') {
+            for (let i = 0; i < data.keys.length; i += 1) {
+              valueData1.push(['', data.keys[i], false])
+              valueData2.push(['', data.keys[i], false])
+            }
           }
-          this.origin_key_item.key_value = hashData1
-          this.temp_key_item.key_value = hashData2
+          this.origin_key_item.key_value = valueData1
+          this.temp_key_item.key_value = valueData2
         }
       } else if (type === 'list') {
         if (reset) this.list_page = 1
@@ -418,8 +388,8 @@ export default {
           let listData1 = []
           let listData2 = []
           for (let i = 0; i < data.length; i += 1) {
-            listData1.push([data[i], false])
-            listData2.push([data[i], false])
+            listData1.push(['', data[i], false])
+            listData2.push(['', data[i], false])
           }
           this.origin_key_item.key_value = listData1
           this.temp_key_item.key_value = listData2
@@ -509,56 +479,65 @@ export default {
         this.log(body.data.data)
       }
     },
-    async delete_list_value(pos) {
-      let list_pos = (this.list_page - 1) * this.value_count + pos
-      const body = await config.myaxios.get(`data?method=list_ops&ops=delete&ip=${this.redis_ip}&key=${this.temp_key_item.name}&pos=${list_pos}`)
+    async delete_item_value(index) {
+      let body = null
+      let common = `ops=delete&&ip=${this.redis_ip}&key=${this.temp_key_item.name}`
+      if (this.temp_key_item.type === 'list') {
+        let list_pos = (this.list_page - 1) * this.value_count + index
+        body = await config.myaxios.get(`data?method=list_ops&pos=${list_pos}&${common}`)
+      } else if (this.temp_key_item.type === 'hash') {
+        let hash_key = this.origin_key_item.key_value[index][0]
+        body = await config.myaxios.get(`data?method=hash_ops&hash_key=${hash_key}&${common}`)
+      } else if (this.temp_key_item.type === 'set') {
+        let set_key = this.origin_key_item.key_value[index][1]
+        body = await config.myaxios.get(`data?method=set_ops&set_key=${set_key}&${common}`)
+      } else if (this.temp_key_item.type === 'zset') {
+        let zset_key = this.origin_key_item.key_value[index][0]
+        body = await config.myaxios.get(`data?method=zset_ops&zset_key=${zset_key}&${common}`)
+      }
+
       if (body.status === 200 && body.data && body.data.code === 0) {
         this.$message.success('删除成功')
-        this.temp_key_item.key_value.splice(pos, 1)
+        this.temp_key_item.key_value.splice(index, 1)
+        this.origin_key_item.key_value.splice(index, 1)
       }
     },
-    async edit_list_value(pos) {
-      this.temp_key_item.key_value[pos].splice(1, 1, true)
-    },
-    async conform_edit_list_value(pos) {
-      let list_pos = (this.list_page - 1) * this.value_count + pos
-      let new_value = this.temp_key_item.key_value[pos][0]
-      const body = await config.myaxios.get(`data?method=list_ops&ops=set&&ip=${this.redis_ip}&key=${this.temp_key_item.name}&pos=${list_pos}&value=${new_value}`)
-      if (body.status === 200 && body.data && body.data.code === 0) {
-        this.$message.success('修改成功')
-        this.temp_key_item.key_value[pos].splice(1, 1, false)
-        this.origin_key_item.key_value[pos].splice(0, 1, this.temp_key_item.key_value[pos][0])
-      }
-    },
-    async cancel_edit_list_value(index) {
-      this.temp_key_item.key_value[index].splice(1, 1, false)
-      this.temp_key_item.key_value[index].splice(0, 1, this.origin_key_item.key_value[index][0])
-    },
-    async cancel_edit_hash_value(index) {
-      this.temp_key_item.key_value[index].splice(2, 1, false)
-      this.temp_key_item.key_value[index].splice(1, 1, this.origin_key_item.key_value[index][1])
-    },
-    async edit_hash_value(index) {
+    async edit_item_value(index) {
       this.temp_key_item.key_value[index].splice(2, 1, true)
     },
-    async conform_edit_hash_value(hash_key, index) {
+    async conform_edit_item_value(index) {
       let new_value = this.temp_key_item.key_value[index][1]
-      const body = await config.myaxios.get(`data?method=hash_ops&ops=set&&ip=${this.redis_ip}&key=${this.temp_key_item.name}&hash_key=${hash_key}&value=${new_value}`)
+      let common = `ops=set&&ip=${this.redis_ip}&key=${this.temp_key_item.name}&value=${new_value}`
+      let body = null
+      if (this.temp_key_item.type === 'list') {
+        let list_pos = (this.list_page - 1) * this.value_count + index
+        body = await config.myaxios.get(`data?method=list_ops&pos=${list_pos}&${common}`)
+      } else if (this.temp_key_item.type === 'hash') {
+        let hash_key = this.origin_key_item.key_value[index][0]
+        body = await config.myaxios.get(`data?method=hash_ops&hash_key=${hash_key}&${common}`)
+      } else if (this.temp_key_item.type === 'set') {
+        let set_key = this.origin_key_item.key_value[index][1]
+        body = await config.myaxios.get(`data?method=set_ops&set_key=${set_key}&${common}`)
+      } else if (this.temp_key_item.type === 'zset') {
+        let zset_key = this.origin_key_item.key_value[index][0]
+        let reg=/^[0-9]+.?[0-9]*$/
+        if (!reg.test(new_value)) {
+          this.$message.warning('Redis的ZSET类型的值只支持数字')
+          return
+        }
+        body = await config.myaxios.get(`data?method=zset_ops&zset_key=${zset_key}&${common}`)
+      }
+
       if (body.status === 200 && body.data && body.data.code === 0) {
         this.$message.success('修改成功')
         this.temp_key_item.key_value[index].splice(2, 1, false)
         this.origin_key_item.key_value[index].splice(1, 1, this.temp_key_item.key_value[index][1])
       }
     },
-    async delete_hash_value(hash_key, index) {
-      const body = await config.myaxios.get(`data?method=hash_ops&ops=delete&&ip=${this.redis_ip}&key=${this.temp_key_item.name}&hash_key=${hash_key}`)
-      if (body.status === 200 && body.data && body.data.code === 0) {
-        if (body.data.data === 1) {
-          this.$message.success('删除成功')
-          this.temp_key_item.key_value.splice(index, 1)
-        }
-      }
-    }
+    async cancel_edit_item_value(index) {
+      this.temp_key_item.key_value[index].splice(2, 1, false)
+      this.temp_key_item.key_value[index].splice(1, 1, this.origin_key_item.key_value[index][1])
+    },
   },
   mounted() {
   }
