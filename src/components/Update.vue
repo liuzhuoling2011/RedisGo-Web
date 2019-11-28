@@ -37,15 +37,15 @@
                 config.myaxios.get('system?method=update')
                   .then(result => {
                     this.update_version = JSON.parse(result.data.data).data.filename
-                    if (this.update_version.length > 1) {
+                    if (this.update_version === null || this.update_version.length === 1){
+                      this.update_version = []
+                    } else {
                       this.setUpdateFlag()
                       this.update_version.shift()
                       for (let i = 0; i < this.update_version.length; i++) {
                         this.update_version[i] = `http://${this.update_version[i]}`
                       }
                       this.update_version.reverse()
-                    } else {
-                      this.update_version = []
                     }
                   })
                 config.myaxios.get('system?method=notice')

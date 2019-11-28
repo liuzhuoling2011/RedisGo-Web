@@ -138,7 +138,7 @@ export default {
       this.setRedisIPName({'redis_ip': val})
       if (this.memu_key === 'redis_monitor') {
         this.websocket_get_redis_info()
-        this.$refs.charts.updateCharts()
+        this.$refs.charts.resetCharts()
       } else if (this.memu_key === 'redis_info') {
         this.$refs.infos.get_redis_infos()
       } else if (this.memu_key === 'redis_data') {
@@ -154,6 +154,11 @@ export default {
     this.initWS()
     await this.initContainers()
     this.menuClick({'key': 'redis_info'})
+    try {
+      document.body.removeChild(document.getElementById('spinner'))
+    } catch (e) {
+      //
+    }
   },
   mounted() {
   }
