@@ -1,4 +1,4 @@
-function circle_push(arr, val, len = 10 * 60 * 60) {
+function circle_push(arr, val, len = 10 * 60) {
     if (arr === undefined) {
         arr = []
     }

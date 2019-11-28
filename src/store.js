@@ -12,20 +12,21 @@ function process_info_data(redata, state) {
     // state.info_data_map[ip] = data
     state.info_data = data
 
-    state.chart_data.time_data[ip] = utils.circle_push(state.chart_data.time_data[ip], moment().format('HH:mm:ss'))
-    state.chart_data.info_input_kbps[ip] = utils.circle_push(state.chart_data.info_input_kbps[ip], data['instantaneous_input_kbps'])
-    state.chart_data.info_output_kbps[ip] = utils.circle_push(state.chart_data.info_output_kbps[ip], data['instantaneous_output_kbps'])
-    state.chart_data.info_used_memory[ip] = utils.circle_push(state.chart_data.info_used_memory[ip], data['used_memory'] / 1024)
-    state.chart_data.info_ops_per_sec[ip] = utils.circle_push(state.chart_data.info_ops_per_sec[ip], data['instantaneous_ops_per_sec'])
-    state.chart_data.info_used_cpu_user[ip] = utils.circle_push(state.chart_data.info_used_cpu_user[ip], data['used_cpu_user'])
+    if (state.chart_data[ip] === undefined) {
+        state.chart_data[ip] = [[
+            'time', 'instantaneous_input_kbps', 'instantaneous_output_kbps',
+            'used_memory', 'instantaneous_ops_per_sec', 'used_cpu_user'
+        ]]
+    }
+
+    let line_data = [
+        moment().format('HH:mm:ss'), data['instantaneous_input_kbps'], data['instantaneous_output_kbps'],
+        data['used_memory'] / 1024, data['instantaneous_ops_per_sec'], data['used_cpu_user']
+    ]
+    state.chart_data[ip] = utils.circle_push(state.chart_data[ip], line_data)
 
     if (state.redis_ip === ip) {
-        state.chart_info_data.time = moment().format('HH:mm:ss')
-        state.chart_info_data.info_input_kbps = data['instantaneous_input_kbps']
-        state.chart_info_data.info_output_kbps = data['instantaneous_output_kbps']
-        state.chart_info_data.info_used_memory = data['used_memory'] / 1024
-        state.chart_info_data.info_ops_per_sec = data['instantaneous_ops_per_sec']
-        state.chart_info_data.info_used_cpu_user = data['used_cpu_user']
+        state.chart_ip_data = line_data
         state.chart_change_count += 1  // Ip相同的数据才会刷新图表
     }
 }
@@ -78,22 +79,8 @@ export default new Vuex.Store({
 
         update_flag: false,
 
-        chart_data: {
-            time_data: {},
-            info_input_kbps: {},
-            info_output_kbps: {},
-            info_used_memory: {},
-            info_ops_per_sec: {},
-            info_used_cpu_user: {},
-        },
-        chart_info_data: {
-            time: '',
-            info_input_kbps: '',
-            info_output_kbps: '',
-            info_used_memory: '',
-            info_ops_per_sec: '',
-            info_used_cpu_user: ''
-        },
+        chart_data: {},
+        chart_ip_data: [],
         chart_change_count: 0,
 
         subscribe_keys: {},

@@ -111,6 +111,7 @@ export default {
         await this.$refs.data.search_keys()
       } else if (this.memu_key === 'redis_monitor') {
         this.websocket_get_redis_info()
+        this.$refs.charts.resetCharts()
       } else if (this.memu_key === 'redis_pubsub') {
         // todo
       } else {

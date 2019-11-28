@@ -1,74 +1,51 @@
 <template>
     <div>
-        <a-row>
-            <a-col :span="12">
-                <div id="chart" style="height:46vh; width:48vw"></div>
-            </a-col>
-            <a-col :span="12">
-                <div id="chart1" style="height:46vh; width:48vw"></div>
-            </a-col>
-        </a-row>
-        <a-row>
-            <a-col :span="12">
-                <div id="chart2" style="height:46vh; width:48vw"></div>
-            </a-col>
-            <a-col :span="12">
-                <div id="chart3" style="height:46vh; width:48vw"></div>
-            </a-col>
-        </a-row>
+        <div style="text-align: center; width: 100%">
+            <div id="chart" style="height:90vh; width:96vw"></div>
+        </div>
     </div>
 </template>
 
 <script>
     import echarts from 'echarts'
     import {mapState, mapMutations} from 'vuex'
+    import utils from "../utils";
 
-    let option = {
-        title: {
-            text: '流量监控'
-        },
+    const option =  {
+        legend: {},
         tooltip: {
             trigger: 'axis',
             axisPointer: {
                 animation: false
             }
         },
-        axisPointer: {
-            link: {xAxisIndex: 'all'}
+        dataset: {
+            dimensions: [
+                'time', 'instantaneous_input_kbps', 'instantaneous_output_kbps',
+                'used_memory', 'instantaneous_ops_per_sec', 'used_cpu_user'
+            ],
+            source: []
         },
-        grid: [{
-            left: 50,
-            right: 50,
-            height: '32%'
-        }, {
-            left: 50,
-            right: 50,
-            top: '60%',
-            height: '32%'
-        }],
+        grid: [
+            {x: '7%', y: '7%', width: '40%', height: '18%'},
+            {x: '7%', y2: '57%', width: '40%', height: '18%'},
+            {x2: '7%', y: '7%', width: '40%', height: '40%'},
+            {x: '7%', y2: '7%', width: '40%', height: '40%'},
+            {x2: '7%', y2: '7%', width: '40%', height: '40%'}
+        ],
         xAxis: [
-            {
-                type: 'category',
-                axisLine: {onZero: true},
-            },
-            {
-                gridIndex: 1,
-                type: 'category',
-                axisLine: {onZero: true},
-                position: 'top'
-            }
+            {gridIndex: 0, type: 'category'},
+            {gridIndex: 1, type: 'category', position: 'top', show: false},
+            {gridIndex: 2, type: 'category'},
+            {gridIndex: 3, type: 'category'},
+            {gridIndex: 4, type: 'category'}
         ],
         yAxis: [
-            {
-                name: '上行流量(Kbps/s)',
-                type: 'value',
-            },
-            {
-                gridIndex: 1,
-                name: '下行流量(Kbps/s)',
-                type: 'value',
-                inverse: true
-            }
+            {gridIndex: 0, nameGap: 55, nameLocation: 'center', name: '上行流量(Kbps/s)'},
+            {gridIndex: 1, nameGap: 55, nameLocation: 'center', name: '下行流量(Kbps/s)', inverse: true},
+            {gridIndex: 2, nameGap: 55, nameLocation: 'center', name: '内存监控'},
+            {gridIndex: 3, nameGap: 55, nameLocation: 'center', name: '每秒执行操作数)'},
+            {gridIndex: 4, nameGap: 55, nameLocation: 'center', name: 'CPU监控'}
         ],
         series: [
             {
@@ -77,110 +54,50 @@
                 showSymbol: false,
                 hoverAnimation: false,
                 sampling: 'average',
-                data: []
+                xAxisIndex: 0,
+                yAxisIndex: 0
             },
             {
                 name: '下行流量',
                 type: 'line',
-                xAxisIndex: 1,
-                yAxisIndex: 1,
                 showSymbol: false,
-                sampling: 'average',
                 hoverAnimation: false,
-                data: []
+                sampling: 'average',
+                xAxisIndex: 1,
+                yAxisIndex: 1
+            },
+            {
+                name: '内存监控',
+                type: 'line',
+                showSymbol: false,
+                hoverAnimation: false,
+                sampling: 'average',
+                xAxisIndex: 2,
+                yAxisIndex: 2,
+            },
+            {
+                name: '每秒执行操作数',
+                type: 'line',
+                showSymbol: false,
+                hoverAnimation: false,
+                sampling: 'average',
+                xAxisIndex: 3,
+                yAxisIndex: 3,
+            },
+            {
+                name: 'CPU监控',
+                type: 'line',
+                showSymbol: false,
+                hoverAnimation: false,
+                sampling: 'average',
+                xAxisIndex: 4,
+                yAxisIndex: 4,
             }
+
         ]
-    }
-    let option1 = {
-        title: {
-            text: '内存监控'
-        },
-        tooltip: {
-            trigger: 'axis'
-        },
-        xAxis: {
-            type: 'category',
-        },
-        yAxis: {
-            name: '内存占用(KB)',
-            type: 'value'
-        },
-        grid: {
-            left: 0,
-            right: 0,
-            bottom: 0,
-            containLabel: true
-        },
-        series: [{
-            data: [],
-            type: 'line',
-            hoverAnimation: false,
-            showSymbol: false,
-            sampling: 'average'
-        }]
-    }
-    let option2 = {
-        title: {
-            text: '每秒执行操作数'
-        },
-        tooltip: {
-            trigger: 'axis'
-        },
-        xAxis: {
-            type: 'category',
-            // data: []
-        },
-        yAxis: {
-            type: 'value'
-        },
-        grid: {
-            left: 20,
-            right: 20,
-            containLabel: true
-        },
-        series: [{
-            data: [],
-            type: 'line',
-            hoverAnimation: false,
-            showSymbol: false,
-            sampling: 'average'
-        }]
-    }
-    let option3 = {
-        title: {
-            text: 'CPU监控'
-        },
-        tooltip: {
-            trigger: 'axis',
-            axisPointer: {
-                animation: false
-            }
-        },
-        xAxis: {
-            type: 'category',
-            // data: []
-        },
-        yAxis: {
-            type: 'value'
-        },
-        grid: {
-            left: 20,
-            right: 20,
-            containLabel: true
-        },
-        series: [{
-            data: [],
-            type: 'line',
-            hoverAnimation: false,
-            showSymbol: false,
-            sampling: 'average'
-        }]
     }
 
     let myChart = null
-    let myChart1 = null
-    let myChart2 = null
-    let myChart3 = null
 
     export default {
         name: 'RedisCharts',
@@ -188,10 +105,11 @@
             return {
                 // eslint-disable-next-line no-console
                 log: console.log,
+                last_time: {}
             }
         },
         computed: {
-            ...mapState(['redis_ip', 'chart_data', 'chart_info_data', 'chart_change_count']),
+            ...mapState(['redis_ip', 'chart_data', 'chart_ip_data', 'chart_change_count']),
         },
         watch: {
             chart_change_count() {
@@ -201,69 +119,27 @@
         methods: {
             ...mapMutations(['initWS']),
             resetCharts() {
-                myChart.setOption(option)
-                myChart2.setOption(option2)
-                myChart3.setOption(option3)
-                let time_data = this.chart_data.time_data[this.redis_ip]
-                let info_input_kbps = this.chart_data.info_input_kbps[this.redis_ip]
-                let info_output_kbps = this.chart_data.info_output_kbps[this.redis_ip]
-                let info_used_memory = this.chart_data.info_used_memory[this.redis_ip]
-                let info_ops_per_sec = this.chart_data.info_ops_per_sec[this.redis_ip]
-                let info_used_cpu_user = this.chart_data.info_used_cpu_user[this.redis_ip]
-
-                let chart_data = [[], []]
-                let chart_data1 = []
-                let chart_data2 = []
-                let chart_data3 = []
-                if (time_data !== undefined) {
-                    for (let i = 0; i < time_data.length; i++) {
-                        chart_data[0].push([time_data[i], info_input_kbps[i]])
-                        chart_data[1].push([time_data[i], info_output_kbps[i]])
-                        chart_data1.push([time_data[i], info_used_memory[i]])
-                        chart_data2.push([time_data[i], info_ops_per_sec[i]])
-                        chart_data3.push([time_data[i], info_used_cpu_user[i]])
-                    }
+                option.dataset.source = this.chart_data[this.redis_ip]
+                if (option.dataset.source === undefined) {
+                    option.dataset.source = []
                 }
-
-                option.series[0].data = chart_data[0]
-                option.series[1].data = chart_data[1]
                 myChart.setOption(option)
-
-                option1.series[0].data = chart_data1
-                myChart1.setOption(option1)
-
-                option2.series[0].data = chart_data2
-                myChart2.setOption(option2)
-
-                option3.series[0].data = chart_data3
-                myChart3.setOption(option3)
             },
             updateCharts() {
-                let cur_time = this.chart_info_data.time
-                myChart.appendData({seriesIndex: 0, data: [[cur_time, this.chart_info_data.info_input_kbps]]})
-                myChart.appendData({seriesIndex: 1, data: [[cur_time, this.chart_info_data.info_output_kbps]]})
-                myChart.resize()
-
-                myChart1.appendData({seriesIndex: 0, data: [[cur_time, this.chart_info_data.info_used_memory]]})
-                myChart1.resize()
-
-                myChart2.appendData({seriesIndex: 0, data: [[cur_time, this.chart_info_data.info_ops_per_sec]]})
-                myChart2.resize()
-
-                myChart3.appendData({seriesIndex: 0, data: [[cur_time, this.chart_info_data.info_used_cpu_user]]})
-                myChart3.resize()
-                this.log(cur_time)
+                if (this.last_time[this.redis_ip] === undefined) {
+                    this.last_time[this.redis_ip] = this.chart_ip_data[0]
+                    option.dataset.source = this.chart_data[this.redis_ip]
+                } else if (this.last_time[this.redis_ip] !== this.chart_ip_data[0]) {
+                    // 貌似是引用的, 这里无需在push
+                    // option.dataset.source = utils.circle_push(option.dataset.source, this.chart_ip_data)
+                    myChart.setOption(option)
+                    this.log(this.chart_ip_data[0])
+                }
             }
         },
         mounted() {
             myChart = echarts.init(document.getElementById('chart'))
             myChart.setOption(option)
-            myChart1 = echarts.init(document.getElementById('chart1'))
-            myChart1.setOption(option1)
-            myChart2 = echarts.init(document.getElementById('chart2'))
-            myChart2.setOption(option2)
-            myChart3 = echarts.init(document.getElementById('chart3'))
-            myChart3.setOption(option3)
         }
     }
 </script>

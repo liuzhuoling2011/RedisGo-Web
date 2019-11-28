@@ -11,8 +11,8 @@ let config = {
 }
 
 // let env = 'local'
-let env = 'dev'
-// let env = 'prod'
+// let env = 'dev'
+let env = 'prod'
 
 export default {
     base_url: config[env].base_url,
