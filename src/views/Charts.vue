@@ -9,10 +9,10 @@
 <script>
     import echarts from 'echarts'
     import {mapState, mapMutations} from 'vuex'
-    import utils from "../utils";
 
     const option =  {
         legend: {},
+        animationThreshold: 5 * 60,
         tooltip: {
             trigger: 'axis',
             axisPointer: {
@@ -27,12 +27,15 @@
             source: []
         },
         grid: [
-            {x: '7%', y: '7%', width: '40%', height: '18%'},
-            {x: '7%', y2: '57%', width: '40%', height: '18%'},
+            {x: '7%', y: '7%', width: '40%', height: '19%'},
+            {x: '7%', y2: '52%', width: '40%', height: '19%'},
             {x2: '7%', y: '7%', width: '40%', height: '40%'},
             {x: '7%', y2: '7%', width: '40%', height: '40%'},
             {x2: '7%', y2: '7%', width: '40%', height: '40%'}
         ],
+        axisPointer: {
+            link: {xAxisIndex: 'all'}
+        },
         xAxis: [
             {gridIndex: 0, type: 'category'},
             {gridIndex: 1, type: 'category', position: 'top', show: false},
