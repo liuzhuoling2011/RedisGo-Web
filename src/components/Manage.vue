@@ -119,7 +119,10 @@
             },
             upload_add() {
                 this.visible_children_loading = true
-                config.myaxios.get(`containers?method=add&ip=${this.container_tmp.ip}&name=${this.container_tmp.name}&password=${this.container_tmp.password}&port=${this.container_tmp.port}&db=${this.container_tmp.db}`)
+                let redis_conf = `ip=${this.container_tmp.ip}&port=${this.container_tmp.port}&db=${this.container_tmp.db}` +
+                        `&name=${encodeURIComponent(this.container_tmp.name)}` +
+                        `&password=${encodeURIComponent(this.container_tmp.password)}`
+                config.myaxios.get(`containers?method=add&${redis_conf}`)
                     .then(result => {
                         this.visible_children_loading = false
                         let res = result.data
@@ -137,7 +140,10 @@
             },
             upload_edit() {
                 this.visible_children_loading = true
-                config.myaxios.get(`containers?method=edit&ip=${this.container_tmp.ip}&name=${this.container_tmp.name}&password=${this.container_tmp.password}&port=${this.container_tmp.port}&db=${this.container_tmp.db}`)
+                let redis_conf = `ip=${this.container_tmp.ip}&port=${this.container_tmp.port}&db=${this.container_tmp.db}` +
+                        `&name=${encodeURIComponent(this.container_tmp.name)}` +
+                        `&password=${encodeURIComponent(this.container_tmp.password)}`
+                config.myaxios.get(`containers?method=edit&${redis_conf}`)
                     .then(result => {
                         this.visible_children_loading = false
                         let res = result.data
