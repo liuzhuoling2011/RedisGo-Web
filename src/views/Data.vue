@@ -1,7 +1,7 @@
 <template>
-  <div>
+  <div ref="data_view">
     <a-row type="flex" justify="center">
-      <a-col span="7">
+      <a-col :span="row_width[0]">
         <a-row :gutter="8" type="flex" justify="space-between">
           <a-col span="8">
             <a-tooltip title="数据库选择">
@@ -46,7 +46,7 @@
         </div>
       </a-col>
 
-      <a-col offset="1" span="12">
+      <a-col offset="1" :span="row_width[1]">
         <a-row :gutter="8" type="flex" justify="space-between">
           <a-col span="8">
             <a-tooltip title="Key的名称">
@@ -170,6 +170,7 @@ export default {
       // eslint-disable-next-line no-console
       log: console.log,
       formatSeconds: utils.formatSeconds,
+      row_width: [7, 12],
       redis_db: 0,
       search_key: "",
       key_cursors: [0],
@@ -540,6 +541,9 @@ export default {
     },
   },
   mounted() {
+    if (this.$refs.data_view.width <= 900) {
+      this.row_width = [8, 15]
+    }
   }
 }
 </script>

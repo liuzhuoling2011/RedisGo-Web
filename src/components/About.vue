@@ -21,7 +21,7 @@ export default {
   // },
   data() {
     return {
-      version: 'RedisGo Web V2.0.1',
+      version: 'RedisGo Web V2.0.2',
       about_flag: false,
       pic_src: 'http://qiniu.zoranjojo.top/zoranjojo.jpg'
     }

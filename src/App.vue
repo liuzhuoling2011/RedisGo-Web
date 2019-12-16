@@ -2,9 +2,9 @@
   <div id="app" style="height: 100%">
     <a-layout id="components-layout-demo-top" style="height: 100%" class="layout">
       <a-layout-header>
-        <div class="logo" />
         <a-row>
-          <a-col :span="17">
+          <a-col :span="14">
+            <div class="logo" />
             <a-menu
               theme="dark"
               mode="horizontal"
@@ -18,16 +18,14 @@
               <a-menu-item key="redis_monitor"><a-icon type="dashboard" />性能监控</a-menu-item>
             </a-menu>
           </a-col>
-          <a-col :span="5">
-            <a-row type="flex" justify="end">
-              <a-col :span="10">
-                <a-select :value="redis_ip" style="width: 150px" @change="change_redis">
+          <a-col :span="8" offset="2">
+<!--            <a-row type="flex" justify="end">-->
+              <div style="text-align: right">
+                <a-select :value="redis_ip" style="width: 150px; margin: 0 20px" @change="change_redis">
                   <a-select-option v-for="item in containers" :value="item.ip" v-bind:key="item.ip">{{item.name}}</a-select-option>
                 </a-select>
-              </a-col>
-              <a-col :span="2" :offset="1">
                 <a-dropdown>
-                  <a-icon class="ant-dropdown-link" type="setting" style="color: #ffffff; font-size: 28px; padding-top: 17px"/>
+                  <a-icon class="ant-dropdown-link" type="setting" style="color: #ffffff; font-size: 22px"/>
                   <a-menu slot="overlay" @click="settingClick">
                     <a-menu-item key="about"><a-icon type="info-circle"/>关于程序</a-menu-item>
                     <a-menu-item key="update"><a-icon type="reload"/>
@@ -37,8 +35,7 @@
                     <a-menu-item key="edit"><a-icon type="edit"/>连接管理</a-menu-item>
                   </a-menu>
                 </a-dropdown>
-              </a-col>
-            </a-row>
+              </div>
           </a-col>
         </a-row>
       </a-layout-header>
