@@ -6,17 +6,15 @@
                     <a-list bordered :dataSource="redis_output[redis_ip]" >
                         <div slot="header">
                             <b>Redis输出信息:</b>
-                            <div style="width: 100%; text-align: right">
-                                <a-tag color="red" @click="delete_pubsub_output(-1)">清空信息</a-tag>
-                            </div>
+                            <a-tag style="position: absolute; right: 24px;" color="red" @click="delete_pubsub_output(-1)">清空信息</a-tag>
                         </div>
                         <a-list-item slot="renderItem" slot-scope="item, index">
                             <a-list-item-meta :description="item[1]" >
                                 <a slot="title">接收通道: {{item[0]}}</a>
                             </a-list-item-meta>
                             <div slot="actions">
-                                <a-button type="link" @click="format_json(item[1])">JSON</a-button>
-                                <a-button shape="circle" type="danger" icon="delete" @click="delete_pubsub_output(index)"></a-button>
+                                <a @click="format_json(item[1])">JSON</a> <a-divider type="vertical"/>
+                                <a @click="delete_pubsub_output(index)" style="color: lightsalmon">删除</a>
                             </div>
                         </a-list-item>
                     </a-list>

@@ -35,7 +35,7 @@ function formatSeconds(value) {
     if(hourTime > 0) {
         result = "" + parseInt(hourTime) + "小时" + result;
     }
-    return result;
+    return result
 }
 
 function parse_json(json_data) {

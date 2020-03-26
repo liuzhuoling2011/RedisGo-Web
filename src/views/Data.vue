@@ -1,7 +1,7 @@
 <template>
   <div ref="data_view">
     <a-row type="flex" justify="center">
-      <a-col :span="row_width[0]">
+      <a-col span="7">
         <a-row :gutter="8" type="flex" justify="space-between">
           <a-col span="8">
             <a-tooltip title="数据库选择">
@@ -16,7 +16,7 @@
             </a-tooltip>
           </a-col>
           <a-col span="6" style="text-align: right">
-            <a-button icon="plus" @click="add_key_click">添加元素</a-button>
+            <a-button icon="plus" @click="add_key_click">添加</a-button>
           </a-col>
         </a-row>
 
@@ -46,7 +46,7 @@
         </div>
       </a-col>
 
-      <a-col offset="1" :span="row_width[1]">
+      <a-col offset="1" :md="16" :xl="16" :xxl="12">
         <a-row :gutter="8" type="flex" justify="space-between">
           <a-col span="8">
             <a-tooltip title="Key的名称">
@@ -68,26 +68,26 @@
           <a-col span="4">
             <a-button-group style="width: 100%">
               <a-tooltip title="编辑内容" v-if="temp_key_item.type === 'string'">
-                <a-button icon="edit" @click="edit_value" style="width: 30%; color: blue"/>
+                <a-button icon="edit" @click="edit_value" style="width: 33%; color: blue"/>
               </a-tooltip>
               <a-tooltip title="刷新">
-                <a-button icon="sync" @click="refresh" style="width: 30%; color: green"/>
+                <a-button icon="sync" @click="refresh" style="width: 33%; color: green"/>
               </a-tooltip>
               <a-tooltip title="删除Key">
-                <a-button icon="delete" @click="rm_key" style="width: 30%; color: red"/>
+                <a-button icon="delete" @click="rm_key" style="width: 33%; color: red"/>
               </a-tooltip>
             </a-button-group>
           </a-col>
           <a-col span="5">
             <a-button-group v-if="temp_key_item.type === 'string'">
               <a-tooltip title="以初始文字形式展示">
-                <a-button @click="show_text">Text</a-button>
+                <a-button @click="show_text" style="width: 33%">Text</a-button>
               </a-tooltip>
               <a-tooltip title="以Json形式展示">
-                <a-button @click="show_json">Json</a-button>
+                <a-button @click="show_json" style="width: 33%">Json</a-button>
               </a-tooltip>
               <a-tooltip title="以json压缩形式展示">
-                <a-button @click="show_zip">Zip</a-button>
+                <a-button @click="show_zip" style="width: 33%">Zip</a-button>
               </a-tooltip>
             </a-button-group>
             <a-tooltip title="请输入要搜索的Key">
@@ -97,8 +97,8 @@
             </a-tooltip>
           </a-col>
           <a-col span="4" style="text-align: right">
-            <a-button type="primary" @click="comform_edit" v-if="edit_mode">确认</a-button>
-            <a-button type="error" @click="cancel_edit" v-if="edit_mode">取消</a-button>
+            <a-button type="primary" style="width: 48%" @click="comform_edit" v-if="edit_mode">确认</a-button>
+            <a-button type="error" style="width: 48%" @click="cancel_edit" v-if="edit_mode">取消</a-button>
           </a-col>
         </a-row>
         <div style="margin-top: 10px"/>
@@ -126,13 +126,13 @@
                   </a-list-item-meta>
                   <div slot="actions">
                     <div v-if="item[2]">
-                      <a-button shape="circle" icon="check" @click="conform_edit_item_value(index)"></a-button>
-                      <a-button shape="circle" icon="close" @click="cancel_edit_item_value(index)"></a-button>
+                      <a @click="conform_edit_item_value(index)">确认</a> <a-divider type="vertical"/>
+                      <a @click="cancel_edit_item_value(index)" style="color: lightsalmon">取消</a>
                     </div>
                     <div v-else>
-                      <a-button type="link" v-if="temp_key_item.type !== 'zset'" @click="format_json(item[1])">JSON</a-button>
-                      <a-button shape="circle" icon="edit" @click="edit_item_value(index)"></a-button>
-                      <a-button shape="circle" type="danger" icon="delete" @click="delete_item_value(index)"></a-button>
+                      <a @click="format_json(item[1])">JSON</a> <a-divider type="vertical"/>
+                      <a @click="edit_item_value(index)">编辑</a> <a-divider type="vertical"/>
+                      <a @click="delete_item_value(index)" style="color: lightsalmon">删除</a>
                     </div>
                   </div>
                 </a-list-item>

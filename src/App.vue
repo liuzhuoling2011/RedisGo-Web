@@ -177,8 +177,8 @@ export default {
   }
   .command-botton {
     position: absolute;
-    right: 30px;
-    bottom: 30px;
+    right: 20px;
+    bottom: 20px;
     background: white;
   }
   .command-botton:hover, .command-botton:focus {

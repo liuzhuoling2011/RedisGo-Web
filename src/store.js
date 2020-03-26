@@ -158,6 +158,10 @@ export default new Vuex.Store({
                 state.websocket = null
                 clearTimeout(state.websocket_ping)
                 state.websocket_ping = null
+                Vue.prototype.$notification['error']({
+                    message: 'WebSocket连接断开, 请按Ctrl+F5刷新页面',
+                    duration: 0,
+                });
             }
             websocket.onmessage = (e) => receiveData(e, state)
             state.websocket = websocket

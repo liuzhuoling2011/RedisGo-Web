@@ -10,8 +10,6 @@ import store from './store'
 Vue.use(AntUI)
 Vue.config.productionTip = false
 
-// window.axios = require('axios');
-// window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 window.axios = axios.create({
   baseURL: config.base_url
 })

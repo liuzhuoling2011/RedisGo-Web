@@ -3,13 +3,13 @@
     <a-row>
       <a-col :span="16" style="padding-right: 10px">
         <a-divider>高时延日志</a-divider>
-        <a-table rowKey="id" :columns="logs_columns" :loading="logs_loading" :dataSource="logs_data" :pagination="false" :scroll="{ y: 310 }" style="word-break: break-all">
+        <a-table rowKey="id" :columns="logs_columns" :loading="logs_loading" :dataSource="logs_data" :pagination="false" :scroll="{ y: 280 }" style="word-break: break-all">
           <template slot="time" slot-scope="text">
             {{moment(text*1000).format('YYYY-MM-DD HH:mm:ss')}}
           </template>
         </a-table>
         <a-divider>客户端列表</a-divider>
-        <a-table rowKey="id" :columns="clients_columns" :loading="clients_loading" :dataSource="clients_data" :pagination="{ pageSize: 50 }" :scroll="{ y: 268 }" >
+        <a-table rowKey="id" :columns="clients_columns" :loading="clients_loading" :dataSource="clients_data" :pagination="{ pageSize: 50 }" :scroll="{ y: 258 }" >
           <template slot="time" slot-scope="text">
             {{formatSeconds(text)}}
           </template>
@@ -23,43 +23,60 @@
               <a-card-grid class="gridcard">版本信息: <a-tag color="green">{{info_data.redis_version}} | {{info_data.arch_bits}}</a-tag></a-card-grid>
               <a-card-grid class="gridcard">PID | PORT: <a-tag color="green">{{info_data.process_id}} | {{info_data.tcp_port}}</a-tag></a-card-grid>
               <a-card-grid class="gridcard">服务模式: {{info_data.redis_mode}}</a-card-grid>
-              <a-card-grid class="gridcard">运行时间: {{formatSeconds(info_data.uptime_in_seconds)}}</a-card-grid>
-              <a-card-grid class="gridcard">执行文件: {{info_data.executable}}</a-card-grid>
-              <a-card-grid class="gridcard">配置文件: {{info_data.config_file}} <a-icon @click="get_config" type="info-circle" style="font-size: 16px; color: cornflowerblue"/></a-card-grid>
-              <a-card-grid class="gridcard">系统版本: {{info_data.os}}</a-card-grid>
+              <a-card-grid class="gridcard">运行时间:
+                <a-tooltip :key="formatSeconds(info_data.uptime_in_seconds)" :title="formatSeconds(info_data.uptime_in_seconds)">
+                  {{formatSeconds(info_data.uptime_in_seconds).length > 10 ? `${formatSeconds(info_data.uptime_in_seconds).slice(0, 10)}...` : formatSeconds(info_data.uptime_in_seconds)}}
+                </a-tooltip>
+              </a-card-grid>
+              <a-card-grid class="gridcard">执行文件:
+                <a-tooltip :key="info_data.executable" :title="info_data.executable">
+                  {{info_data.executable.length > 15 ? `${info_data.executable.slice(0, 15)}...` : info_data.executable}}
+                </a-tooltip>
+              </a-card-grid>
+              <a-card-grid class="gridcard">配置文件:
+                <a-tooltip :key="info_data.config_file" :title="info_data.config_file">
+                  {{info_data.config_file.length > 15 ? `${info_data.config_file.slice(0, 15)}...` : info_data.config_file}}
+                  <a-icon @click="get_config" type="info-circle" style="font-size: 16px; color: cornflowerblue"/>
+                </a-tooltip>
+              </a-card-grid>
+              <a-card-grid class="gridcard">系统版本:
+                <a-tooltip :key="info_data.os" :title="info_data.os">
+                  {{info_data.os.length > 15 ? `${info_data.os.slice(0, 15)}...` : info_data.os}}
+                </a-tooltip>
+              </a-card-grid>
             </a-card>
           </a-collapse-panel>
           <a-collapse-panel key="2">
             <template slot="header"><a-icon type="user" /> 客户端信息</template>
             <a-card>
-              <a-card-grid class="gridcard">已连接客户端的数量: <a-tag color="green">{{info_data.connected_clients}}</a-tag></a-card-grid>
-              <a-card-grid class="gridcard">阻塞的客户端的数量: <a-tag color="orange">{{info_data.blocked_clients}}</a-tag></a-card-grid>
+              <a-card-grid class="gridcard">已连接客户端数量: <a-tag color="green">{{info_data.connected_clients}}</a-tag></a-card-grid>
+              <a-card-grid class="gridcard">阻塞客户端数量: <a-tag color="orange">{{info_data.blocked_clients}}</a-tag></a-card-grid>
             </a-card>
           </a-collapse-panel>
           <a-collapse-panel key="3">
             <template slot="header"><a-icon type="bar-chart" /> 统计信息</template>
             <a-card>
-              <a-card-grid class="gridcard">已接受的连接请求数量: {{info_data.total_connections_received}}</a-card-grid>
-              <a-card-grid class="gridcard">已执行的命令数量: {{info_data.total_commands_processed}}</a-card-grid>
+              <a-card-grid class="gridcard">已接受连接数量: {{info_data.total_connections_received}}</a-card-grid>
+              <a-card-grid class="gridcard">已执行命令数量: {{info_data.total_commands_processed}}</a-card-grid>
               <a-card-grid class="gridcard">总流入数据量: {{info_data.total_net_input_bytes}}</a-card-grid>
               <a-card-grid class="gridcard">总流出数据量: {{info_data.total_net_output_bytes}}</a-card-grid>
               <a-card-grid class="gridcard">每秒流入数据量: {{info_data.instantaneous_input_kbps}}</a-card-grid>
               <a-card-grid class="gridcard">每秒流出数据量: {{info_data.instantaneous_output_kbps}}</a-card-grid>
               <a-card-grid class="gridcard">每秒执行命令数量: {{info_data.instantaneous_ops_per_sec}}</a-card-grid>
-              <a-card-grid class="gridcard">过期删除的键: {{info_data.expired_keys}}</a-card-grid>
-              <a-card-grid class="gridcard">驱逐(evict)的键数量: {{info_data.evicted_keys}}</a-card-grid>
-              <a-card-grid class="gridcard">查找数据库键成功的次数: {{info_data.keyspace_hits}}</a-card-grid>
-              <a-card-grid class="gridcard">订阅的频道数量: {{info_data.pubsub_channels}}</a-card-grid>
-              <a-card-grid class="gridcard">订阅的模式数量: {{info_data.pubsub_patterns}}</a-card-grid>
-              <a-card-grid class="gridcard">拒绝的连接请求数量: {{info_data.rejected_connections}}</a-card-grid>
+              <a-card-grid class="gridcard">过期删除键: {{info_data.expired_keys}}</a-card-grid>
+              <a-card-grid class="gridcard">驱逐(evict)键数量: {{info_data.evicted_keys}}</a-card-grid>
+              <a-card-grid class="gridcard">查找键成功次数: {{info_data.keyspace_hits}}</a-card-grid>
+              <a-card-grid class="gridcard">订阅频道数量: {{info_data.pubsub_channels}}</a-card-grid>
+              <a-card-grid class="gridcard">订阅模式数量: {{info_data.pubsub_patterns}}</a-card-grid>
+              <a-card-grid class="gridcard">拒绝连接请求数量: {{info_data.rejected_connections}}</a-card-grid>
             </a-card>
           </a-collapse-panel>
           <a-collapse-panel key="4">
             <template slot="header"><a-icon type="hdd" /> 持久信息</template>
             <a-card>
-              <a-card-grid class="gridcard">AOF是否处于打开状态: {{info_data.aof_enabled}}</a-card-grid>
-              <a-card-grid class="gridcard">AOF文件目前的大小: {{info_data.aof_current_size}}</a-card-grid>
-              <a-card-grid class="gridcard">RDB文件最近保存时间: <br> {{moment(info_data.rdb_last_save_time*1000).format('YYYY-MM-DD HH:mm:ss')}}</a-card-grid>
+              <a-card-grid class="gridcard">AOF是否打开: {{info_data.aof_enabled}}</a-card-grid>
+              <a-card-grid class="gridcard">AOF文件大小: {{info_data.aof_current_size}}</a-card-grid>
+              <a-card-grid class="gridcard">RDB文件保存时间: <br> {{moment(info_data.rdb_last_save_time*1000).format('YYYY-MM-DD HH:mm:ss')}}</a-card-grid>
             </a-card>
           </a-collapse-panel>
           <a-collapse-panel key="5">
@@ -157,6 +174,8 @@ export default {
           title: '执行时间(微秒)',
           dataIndex: 'time_used',
           width: 150,
+          sorter: (a, b) => a.time_used - b.time_used,
+          sortDirections: ['descend'],
         }, {
           title: '日志详情',
           dataIndex: 'msg',
@@ -204,7 +223,7 @@ export default {
       axios.get(this.url + `/containers?method=execute&ip=${this.redis_ip}&command=${comm}`)
         .then(result => {
           let code = result.data.code;
-          if (code == 0) {
+          if (code === 0) {
             let output = result.data.data
             for (let i = 0; i < output.length; i += 2) {
               if (output[i] === 'client-output-buffer-limit') {
@@ -265,5 +284,8 @@ export default {
   .gridcard25 {
     width: 25%;
     textAlign: 'left';
+  }
+  .ant-card-grid {
+    padding: 12px !important;
   }
 </style>
