@@ -18,7 +18,7 @@
       <a-col :span="8">
         <a-collapse accordion activeKey="1" style="font-size: 15px">
           <a-collapse-panel key="1">
-            <template slot="header"><a-icon type="home" /> 服务端信息 | {{redis_ip}}</template>
+            <template slot="header"><a-icon type="home" /> 服务端信息 | {{redis_id}}</template>
             <a-card>
               <a-card-grid class="gridcard">版本信息: <a-tag color="green">{{info_data.redis_version}} | {{info_data.arch_bits}}</a-tag></a-card-grid>
               <a-card-grid class="gridcard">PID | PORT: <a-tag color="green">{{info_data.process_id}} | {{info_data.tcp_port}}</a-tag></a-card-grid>
@@ -124,10 +124,10 @@
       </a-col>
     </a-row>
     <a-drawer
-            width=560
-            placement="right"
-            @close="()=>{showConfig = false}"
-            :visible="showConfig"
+      width=560
+      placement="right"
+      @close="showConfig = false"
+      :visible="showConfig"
     >
       <div slot="title" >Redis配置详情</div>
       <a-list bordered style="max-height: 88vh; overflow: auto" :dataSource="configData">
@@ -141,19 +141,17 @@
 </template>
 
 <script>
-import axios from "axios"
 import moment from 'moment'
-import config from '../config'
-import utils from "../utils";
 import {mapState, mapMutations} from 'vuex'
+import C from "@/config"
+import U from "@/utils"
 
 export default {
   name: 'RedisInfo',
   data() {
     return {
-      url: config.base_url,
       moment: moment,
-      formatSeconds: utils.formatSeconds,
+      formatSeconds: U.formatSeconds,
       showConfig: false,
       configData: [],
       logs_loading: false,
@@ -211,32 +209,38 @@ export default {
       ],
     }
   },
+  watch: {
+    redis_id(val) {
+      if (val !== '') {
+        this.get_redis_infos()
+      }
+    }
+  },
   computed: {
-    ...mapState(['redis_ip', 'info_data']),
+    ...mapState(['redis_id', 'info_data']),
   },
   methods: {
     ...mapMutations(['setRedisInfo']),
-    get_config() {
+    async get_config() {
       this.showConfig = true
       this.configData = []
       let comm = 'config get *'
-      axios.get(this.url + `/containers?method=execute&ip=${this.redis_ip}&command=${comm}`)
-        .then(result => {
-          let code = result.data.code;
-          if (code === 0) {
-            let output = result.data.data
-            for (let i = 0; i < output.length; i += 2) {
-              if (output[i] === 'client-output-buffer-limit') {
-                let buffers = output[i + 1].split(' ')
-                this.configData.push({'key': `${output[i]}-${buffers[0]}`, 'value': `${buffers[1]} ${buffers[2]} ${buffers[3]}`})
-                this.configData.push({'key': `${output[i]}-${buffers[4]}`, 'value': `${buffers[5]} ${buffers[6]} ${buffers[7]}`})
-                this.configData.push({'key': `${output[i]}-${buffers[8]}`, 'value': `${buffers[9]} ${buffers[10]} ${buffers[11]}`})
-              } else {
-                this.configData.push({'key': output[i], 'value': output[i + 1]})
-              }
-            }
+      let body = await C.myaxios.get(`/containers?method=execute&id=${this.redis_id}&command=${comm}`)
+      if (body.status === 200 && body.data && body.data.code === 0) {
+        let output = body.data.data
+        for (let i = 0; i < output.length; i += 2) {
+          if (output[i] === 'client-output-buffer-limit') {
+            let buffers = output[i + 1].split(' ')
+            this.configData.push({'key': `${output[i]}-${buffers[0]}`, 'value': `${buffers[1]} ${buffers[2]} ${buffers[3]}`})
+            this.configData.push({'key': `${output[i]}-${buffers[4]}`, 'value': `${buffers[5]} ${buffers[6]} ${buffers[7]}`})
+            this.configData.push({'key': `${output[i]}-${buffers[8]}`, 'value': `${buffers[9]} ${buffers[10]} ${buffers[11]}`})
+          } else {
+            this.configData.push({'key': output[i], 'value': output[i + 1]})
           }
-        })
+        }
+      } else {
+        this.$message.error(body.data.msg)
+      }
     },
     format_db_nums(str) {
       if (str === undefined) return 0
@@ -244,27 +248,33 @@ export default {
       let s = str.split(',')[0]
       return s.split('=')[1]
     },
-    get_info() {
-      axios.get(this.url + '/containers?method=info&ip=' + this.redis_ip)
-        .then(result => {
-          this.setRedisInfo({'info_data': result.data.data})
-        })
+    async get_info() {
+      let body = await C.myaxios.get(`/containers?method=info&id=${this.redis_id}`)
+      if (body.status === 200 && body.data && body.data.code === 0) {
+        this.setRedisInfo({'info_data': body.data.data})
+      } else {
+        this.$message.error(body.data.msg)
+      }
     },
-    get_logs() {
+    async get_logs() {
       this.logs_loading = true
-      axios.get(this.url + '/containers?method=logs&ip=' + this.redis_ip)
-        .then(result => {
-          this.logs_data = result.data.data;
-          this.logs_loading = false
-        })
+      let body = await C.myaxios.get(`/containers?method=logs&id=${this.redis_id}`)
+      if (body.status === 200 && body.data && body.data.code === 0) {
+        this.logs_data = body.data.data
+        this.logs_loading = false
+      } else {
+        this.$message.error(body.data.msg)
+      }
     },
-    get_clients() {
+    async get_clients() {
       this.clients_loading = true
-      axios.get(this.url + '/containers?method=clients&ip=' + this.redis_ip)
-        .then(result => {
-          this.clients_data = result.data.data;
-          this.clients_loading = false
-        })
+      let body = await C.myaxios.get(`/containers?method=clients&id=${this.redis_id}`)
+      if (body.status === 200 && body.data && body.data.code === 0) {
+        this.clients_data = body.data.data
+        this.clients_loading = false
+      } else {
+        this.$message.error(body.data.msg)
+      }
     },
     get_redis_infos() {
       this.get_info()

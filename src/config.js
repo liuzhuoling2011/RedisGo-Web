@@ -10,8 +10,8 @@ let config = {
     'prod': { base_url: location.origin, ws_url: `${wsProtocol}//${location.host}/ws`},
 }
 
-// let env = 'local'
-let env = 'dev'
+let env = 'local'
+// let env = 'dev'
 // let env = 'prod'
 
 export default {

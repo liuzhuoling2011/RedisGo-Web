@@ -21,7 +21,7 @@
         </a-row>
 
         <div style="margin-top: 10px"/>
-        <a-list bordered :dataSource="keys" style="max-height: 80vh; overflow: auto;">
+        <a-list bordered :dataSource="keys" style="max-height: 80vh; overflow: auto; background-color: white">
           <a-list-item slot="renderItem" slot-scope="item" @click="click_item(item)">
             <a-list-item-meta>
               <a slot="title">
@@ -102,7 +102,7 @@
           </a-col>
         </a-row>
         <div style="margin-top: 10px"/>
-        <div style="max-height: 80vh; overflow: auto;">
+        <div style="max-height: 80vh; overflow: auto; background-color: white">
           <div class="spin-content" v-show="present_spin">
             <a-spin :spinning="present_spin"></a-spin>
           </div>
@@ -192,7 +192,7 @@ export default {
   },
   components: { jsonView },
   computed: {
-    ...mapState(['redis_ip', 'info_data']),
+    ...mapState(['redis_id', 'info_data']),
     dbs: function () {
       let all_db = []
       for (let i = 0; i < 16; i++) {
@@ -565,7 +565,7 @@ export default {
 .ant-list-item-meta-description{
   word-break: break-all;
 }
-pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; white-space: pre-wrap; word-wrap: break-word;}
+pre {padding: 5px; margin: 5px; white-space: pre-wrap; word-wrap: break-word;}
 .string { color: green; }
 .number { color: darkorange; }
 .boolean { color: blue; }

@@ -3,7 +3,7 @@
         <a-row style="padding-top: 10px">
             <a-col :span="16" style="padding-right: 10px">
                 <div class="redis-output-container">
-                    <a-list bordered :dataSource="redis_output[redis_ip]" >
+                    <a-list bordered :dataSource="redis_output[redis_ip]" style="background-color: white">
                         <div slot="header">
                             <b>Redis输出信息:</b>
                             <a-tag style="position: absolute; right: 24px;" color="red" @click="delete_pubsub_output(-1)">清空信息</a-tag>
@@ -90,7 +90,7 @@
         },
         components: { jsonView },
         computed: {
-            ...mapState(['redis_ip', 'subscribe_keys', 'subscribe_keys_history', 'redis_output']),
+            ...mapState(['redis_id', 'subscribe_keys', 'subscribe_keys_history', 'redis_output']),
             subscribe_keys_show: function () {
                 if (this.subscribe_keys[this.redis_ip] === undefined) return []
                 return this.subscribe_keys[this.redis_ip]
@@ -101,7 +101,7 @@
             }
         },
         methods: {
-            ...mapMutations(['send_websocket_msg', 'set_pubsub_keys', 'remove_pubsub_output']),
+            ...mapMutations(['sendWebsocketMsg', 'setPubsubKeys', 'removePubsubOutput']),
             format_json(json_data) {
                 let jsonData = utils.parse_json(json_data)
                 if (jsonData !== null) {
@@ -113,14 +113,14 @@
             },
             delete_pubsub_output(index) {
                 if (index === -1) {
-                    this.remove_pubsub_output({'remove_all': true})
+                    this.removePubsubOutput({'remove_all': true})
                 } else {
-                    this.remove_pubsub_output({'index': index})
+                    this.removePubsubOutput({'index': index})
                 }
             },
             publish_msg() {
                 if (this.redis_ip == "") {
-                    this.$message.error('未检测到有效的Redis连接, 请在设置中添加', 10)
+                    this.$message.warning('未检测到有效的Redis连接, 请在设置中添加', 10)
                     return
                 }
                 if (this.pubsub_key == "") {
@@ -146,7 +146,7 @@
             },
             subscribe_msg() {
                 if (this.redis_ip == "") {
-                    this.$message.error('未检测到有效的Redis连接, 请在设置中添加并刷新页面', 10)
+                    this.$message.warning('未检测到有效的Redis连接, 请在设置中添加并刷新页面', 10)
                     return
                 }
                 if (this.pubsub_key == "") {
@@ -157,7 +157,7 @@
                     this.$set(this.subscribe_keys_flag, this.redis_ip, {})
                 }
                 if (this.subscribe_keys_flag[this.redis_ip][this.pubsub_key] === undefined) {
-                    this.send_websocket_msg({
+                    this.sendWebsocketMsg({
                         'type': 2, 'ip': this.redis_ip, 'channel': this.pubsub_key, 'command': 'open'
                     })
                     this.$set(this.subscribe_keys_flag[this.redis_ip], this.pubsub_key, true)
@@ -177,7 +177,7 @@
             },
             handleTagClose(removedTag) {
                 if (this.subscribe_keys_flag[this.redis_ip][removedTag]) {
-                    this.send_websocket_msg({
+                    this.sendWebsocketMsg({
                         'type': 2, 'ip': this.redis_ip, 'channel': removedTag, 'command': 'close'
                     })
                     delete this.subscribe_keys_flag[this.redis_ip][removedTag]
@@ -185,8 +185,8 @@
             },
             handleTagHisClose(removedTag) {
                 const tags = this.subscribe_keys_history[this.redis_ip].filter(tag => tag !== removedTag)
-                this.set_pubsub_keys({'redis_ip': this.redis_ip, 'subscribe_keys_history': tags})
-                // this.$set(this.subscribe_keys_history, this.redis_ip, tags)
+                this.setPubsubKeys({'redis_ip': this.redis_ip, 'subscribe_keys_history': tags})
+                // this.$set(this.subscribe_keys_history, this.redis_id, tags)
             },
             onDestroy() {
                 let save_subscribe_keys = this.subscribe_keys
@@ -214,7 +214,7 @@
 
             let subscribe_keys = localStorage.getItem('subscribe_keys')
             if (subscribe_keys !== null) {
-                this.set_pubsub_keys({'subscribe_keys_history': JSON.parse(subscribe_keys)})
+                this.setPubsubKeys({'subscribe_keys_history': JSON.parse(subscribe_keys)})
                 // this.subscribe_keys_history = JSON.parse(subscribe_keys)
             }
         }
@@ -222,5 +222,7 @@
 </script>
 
 <style scoped>
-
+.ant-list-item-meta-description{
+    word-break: break-all;
+}
 </style>

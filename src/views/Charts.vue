@@ -112,7 +112,7 @@
             }
         },
         computed: {
-            ...mapState(['redis_ip', 'chart_data', 'chart_ip_data', 'chart_change_count']),
+            ...mapState(['redis_id', 'chart_data', 'chart_id_data', 'chart_change_count']),
         },
         watch: {
             chart_change_count() {
@@ -130,13 +130,13 @@
             },
             updateCharts() {
                 if (this.last_time[this.redis_ip] === undefined) {
-                    this.last_time[this.redis_ip] = this.chart_ip_data[0]
+                    this.last_time[this.redis_ip] = this.chart_id_data[0]
                     option.dataset.source = this.chart_data[this.redis_ip]
-                } else if (this.last_time[this.redis_ip] !== this.chart_ip_data[0]) {
+                } else if (this.last_time[this.redis_ip] !== this.chart_id_data[0]) {
                     // 貌似是引用的, 这里无需在push
-                    // option.dataset.source = utils.circle_push(option.dataset.source, this.chart_ip_data)
+                    // option.dataset.source = utils.circle_push(option.dataset.source, this.chart_id_data)
                     myChart.setOption(option)
-                    this.log(this.chart_ip_data[0])
+                    this.log(this.chart_id_data[0])
                 }
             }
         },
