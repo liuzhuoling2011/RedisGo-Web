@@ -14,6 +14,7 @@
       <a-auto-complete placeholder="请输入执行的命令" style="width: 100%;margin-top: 10px"
         :data-source="redis_command_list"
         :backfill="true"
+        v-model="redis_command"
         :filter-option="filterOption"
         :defaultActiveFirstOption="false"
       >

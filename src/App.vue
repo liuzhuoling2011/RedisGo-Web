@@ -72,7 +72,7 @@
       </a-layout-header>
       <a-layout-content style="padding: 10px 50px;">
         <Infos v-show="memu_key === 'redis_info'" ref="infos" />
-        <Data v-if="memu_key === 'redis_data'" ref="data" />
+        <Data v-show="memu_key === 'redis_data'" ref="data" />
         <PubSub v-if="memu_key === 'redis_pubsub'" ref="pubsub" />
         <Charts v-if="memu_key === 'redis_monitor'" ref="charts" />
       </a-layout-content>
@@ -175,8 +175,8 @@ export default {
       } else if (this.memu_key === "redis_info") {
         // this.$refs.infos.get_redis_infos();
       } else if (this.memu_key === "redis_data") {
-        await this.$refs.data.get_info();
-        await this.$refs.data.search_keys();
+        // await this.$refs.data.get_info();
+        // await this.$refs.data.search_keys();
       }
     },
     show_command() {

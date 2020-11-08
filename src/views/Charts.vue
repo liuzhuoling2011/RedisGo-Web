@@ -134,7 +134,7 @@
                     option.dataset.source = this.chart_data[this.redis_ip]
                 } else if (this.last_time[this.redis_ip] !== this.chart_id_data[0]) {
                     // 貌似是引用的, 这里无需在push
-                    // option.dataset.source = utils.circle_push(option.dataset.source, this.chart_id_data)
+                    // option.dataset.source = U.circle_push(option.dataset.source, this.chart_id_data)
                     myChart.setOption(option)
                     this.log(this.chart_id_data[0])
                 }

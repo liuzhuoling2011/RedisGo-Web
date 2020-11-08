@@ -157,8 +157,8 @@
 
 <script>
 // import moment from 'moment'
-import config from '../config'
-import utils from "../utils";
+import C from '@/config'
+import U from "@/utils";
 import jsonView from 'vue-json-views'
 import {mapState, mapMutations} from 'vuex'
 
@@ -166,10 +166,9 @@ export default {
   name: 'RedisData',
   data() {
     return {
-      url: config.base_url,
       // eslint-disable-next-line no-console
       log: console.log,
-      formatSeconds: utils.formatSeconds,
+      formatSeconds: U.formatSeconds,
       row_width: [7, 12],
       redis_db: 0,
       search_key: "",
@@ -191,6 +190,14 @@ export default {
     }
   },
   components: { jsonView },
+  watch: {
+    redis_id(val) {
+      if (val !== '') {
+        this.get_info()
+        this.search_keys()
+      }
+    }
+  },
   computed: {
     ...mapState(['redis_id', 'info_data']),
     dbs: function () {
@@ -227,7 +234,7 @@ export default {
     },
     async change_db(value) {
       this.redis_db = value
-      const body = await config.myaxios.get(`data?method=select_db&ip=${this.redis_ip}&db=${this.redis_db}`)
+      const body = await C.myaxios.get(`data?method=select_db&id=${this.redis_id}&db=${this.redis_db}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         if (body.data.data === "OK") {
           this.$message.success(`成功切换至DB${value}`)
@@ -236,7 +243,7 @@ export default {
       }
     },
     async get_info() {
-      const body = await config.myaxios.get(`containers?method=info&ip=${this.redis_ip}`)
+      const body = await C.myaxios.get(`containers?method=info&id=${this.redis_id}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         this.setRedisInfo({'info_data': body.data.data})
       }
@@ -249,7 +256,7 @@ export default {
       }
       let cursor = this.key_cursors[this.key_cursors.length - 1]
       let match = this.search_key !== '' ? `*${this.search_key}*` : '*'
-      const body = await config.myaxios.get(`data?method=get_keys&ip=${this.redis_ip}&cursor=${cursor}&match=${match}&count=${this.key_count}`)
+      const body = await C.myaxios.get(`data?method=get_keys&id=${this.redis_id}&cursor=${cursor}&match=${match}&count=${this.key_count}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         let data = body.data.data
         this.key_cursors.push(data.cursor)
@@ -266,11 +273,12 @@ export default {
       this.$message.warning("添加key功能暂未实现, 请耐心等待")
     },
     async rm_key() {
-      const body = await config.myaxios.get(`data?method=rm_key&ip=${this.redis_ip}&key=${this.origin_key_item.name}`)
+      const body = await C.myaxios.get(`data?method=rm_key&id=${this.redis_id}&key=${this.origin_key_item.name}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         if (body.data.data === 1) {
           this.$message.success("删除成功")
           await this.search_keys()
+          await this.get_info()
           this.origin_key_item.name = ''
           this.origin_key_item.ttl = -1
           this.origin_key_item.key_value = '暂无内容'
@@ -291,17 +299,19 @@ export default {
     },
     async refresh() {
       await this.get_ttl()
+      await this.get_info()
       await this.get_key_value(this.origin_key_item.name, this.origin_key_item.type)
       if (this.present_mode === 'Json') {
         this.temp_key_item.key_value = JSON.parse(this.temp_key_item.key_value)
       }
     },
     async rename_key() {
-      const body = await config.myaxios.get(`data?method=rename&ip=${this.redis_ip}&key=${this.origin_key_item.name}&new_name=${this.temp_key_item.name}`)
+      const body = await C.myaxios.get(`data?method=rename&id=${this.redis_id}&key=${this.origin_key_item.name}&new_name=${this.temp_key_item.name}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         if (body.data.data === true || body.data.data === "OK") {
           this.$message.success('重命名成功')
           this.origin_key_item.name = this.temp_key_item.name
+          await this.get_info()
           await this.search_keys()
         } else {
           this.$message.error('重命名失败: ' + body.data.data)
@@ -309,16 +319,17 @@ export default {
       }
     },
     async update_ttl(value) {
-      const body = await config.myaxios.get(`data?method=update_ttl&ip=${this.redis_ip}&key=${this.origin_key_item.name}&ttl=${value}`)
+      const body = await C.myaxios.get(`data?method=update_ttl&id=${this.redis_id}&key=${this.origin_key_item.name}&ttl=${value}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         if (body.data.data === true || body.data.data === "OK") {
           this.$message.success('更新超时时间成功')
           await this.search_keys()
+          await this.get_info()
         }
       }
     },
     async get_ttl() {
-      const body = await config.myaxios.get(`data?method=get_ttl&ip=${this.redis_ip}&key=${this.origin_key_item.name}`)
+      const body = await C.myaxios.get(`data?method=get_ttl&id=${this.redis_id}&key=${this.origin_key_item.name}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         this.origin_key_item.ttl = parseInt(body.data.data / 1000000000)
         this.temp_key_item.ttl = parseInt(body.data.data / 1000000000)
@@ -357,7 +368,7 @@ export default {
           this.value_cursors.pop()
         }
         let cursor = this.value_cursors[this.value_cursors.length - 1]
-        const body = await config.myaxios.get(`data?method=get_key_value&ip=${this.redis_ip}&key=${name}&type=${type}&cursor=${cursor}&match=${match}&count=${this.value_count}`)
+        const body = await C.myaxios.get(`data?method=get_key_value&id=${this.redis_id}&key=${name}&type=${type}&cursor=${cursor}&match=${match}&count=${this.value_count}`)
         if (body.status === 200 && body.data && body.data.code === 0) {
           let data = body.data.data
           this.present_spin = false
@@ -382,7 +393,7 @@ export default {
         if (reset) this.list_page = 1
         let start = (this.list_page - 1) * this.value_count
         let end = start + this.value_count - 1
-        const body = await config.myaxios.get(`data?method=get_key_value&ip=${this.redis_ip}&key=${name}&type=${type}&start=${start}&end=${end}`)
+        const body = await C.myaxios.get(`data?method=get_key_value&id=${this.redis_id}&key=${name}&type=${type}&start=${start}&end=${end}`)
         if (body.status === 200 && body.data && body.data.code === 0) {
           this.present_spin = false
           let data = body.data.data
@@ -396,7 +407,7 @@ export default {
           this.temp_key_item.key_value = listData2
         }
       } else {
-        const body = await config.myaxios.get(`data?method=get_key_value&ip=${this.redis_ip}&key=${name}&type=${type}`)
+        const body = await C.myaxios.get(`data?method=get_key_value&id=${this.redis_id}&key=${name}&type=${type}`)
         if (body.status === 200 && body.data && body.data.code === 0) {
           this.present_spin = false
           this.origin_key_item.key_value = body.data.data === null? [] : body.data.data
@@ -405,7 +416,7 @@ export default {
       }
     },
     format_json(json_data) {
-      let jsonData = utils.parse_json(json_data)
+      let jsonData = U.parse_json(json_data)
       if (jsonData !== null) {
         this.jsonDataModal = jsonData
         this.showJsonModal = true
@@ -416,7 +427,7 @@ export default {
     show_json() {
       if (!this.edit_mode) {
         if (typeof this.temp_key_item.key_value !== "object") {
-          let jsonData = utils.parse_json(this.temp_key_item.key_value)
+          let jsonData = U.parse_json(this.temp_key_item.key_value)
           if (jsonData !== null) {
             this.temp_key_item.key_value = jsonData
             this.present_mode = 'Json'
@@ -431,7 +442,7 @@ export default {
           this.temp_key_item.key_value = JSON.stringify(this.temp_key_item.key_value, null, 4)
           this.present_mode = 'Json'
         } else {
-          let jsonData = utils.parse_json(this.temp_key_item.key_value)
+          let jsonData = U.parse_json(this.temp_key_item.key_value)
           if (jsonData !== null) {
             this.temp_key_item.key_value = JSON.stringify(jsonData, null, 4)
             this.present_mode = 'Json'
@@ -447,7 +458,7 @@ export default {
         this.temp_key_item.key_value = JSON.stringify(this.temp_key_item.key_value)
         this.present_mode = 'Zip'
       } else {
-        let jsonData = utils.parse_json(this.temp_key_item.key_value)
+        let jsonData = U.parse_json(this.temp_key_item.key_value)
         if (jsonData !== null) {
           this.temp_key_item.key_value = JSON.stringify(jsonData)
           this.present_mode = 'Zip'
@@ -462,7 +473,7 @@ export default {
       this.present_mode = 'Text'
     },
     async set_string_value(value) {
-      const body = await config.myaxios.get(`data?method=string_ops&ops=set&ip=${this.redis_ip}&key=${this.temp_key_item.name}&value=${value}`)
+      const body = await C.myaxios.get(`data?method=string_ops&ops=set&id=${this.redis_id}&key=${this.temp_key_item.name}&value=${value}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         if (body.data.data === "OK") {
           this.$message.success("修改成功")
@@ -475,32 +486,33 @@ export default {
       }
     },
     async push_list_value(key, pos, value) {
-      const body = await config.myaxios.get(`data?method=list_ops&ops=push&ip=${this.redis_ip}&key=${key}&pos=${pos}&value=${value}`)
+      const body = await C.myaxios.get(`data?method=list_ops&ops=push&id=${this.redis_id}&key=${key}&pos=${pos}&value=${value}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         this.log(body.data.data)
       }
     },
     async delete_item_value(index) {
       let body = null
-      let common = `ops=delete&&ip=${this.redis_ip}&key=${this.temp_key_item.name}`
+      let common = `ops=delete&&id=${this.redis_id}&key=${this.temp_key_item.name}`
       if (this.temp_key_item.type === 'list') {
         let list_pos = (this.list_page - 1) * this.value_count + index
-        body = await config.myaxios.get(`data?method=list_ops&pos=${list_pos}&${common}`)
+        body = await C.myaxios.get(`data?method=list_ops&pos=${list_pos}&${common}`)
       } else if (this.temp_key_item.type === 'hash') {
         let hash_key = this.origin_key_item.key_value[index][0]
-        body = await config.myaxios.get(`data?method=hash_ops&hash_key=${hash_key}&${common}`)
+        body = await C.myaxios.get(`data?method=hash_ops&hash_key=${hash_key}&${common}`)
       } else if (this.temp_key_item.type === 'set') {
         let set_key = this.origin_key_item.key_value[index][1]
-        body = await config.myaxios.get(`data?method=set_ops&set_key=${set_key}&${common}`)
+        body = await C.myaxios.get(`data?method=set_ops&set_key=${set_key}&${common}`)
       } else if (this.temp_key_item.type === 'zset') {
         let zset_key = this.origin_key_item.key_value[index][0]
-        body = await config.myaxios.get(`data?method=zset_ops&zset_key=${zset_key}&${common}`)
+        body = await C.myaxios.get(`data?method=zset_ops&zset_key=${zset_key}&${common}`)
       }
 
       if (body.status === 200 && body.data && body.data.code === 0) {
         this.$message.success('删除成功')
         this.temp_key_item.key_value.splice(index, 1)
         this.origin_key_item.key_value.splice(index, 1)
+        await this.get_info()
       }
     },
     async edit_item_value(index) {
@@ -508,17 +520,17 @@ export default {
     },
     async conform_edit_item_value(index) {
       let new_value = this.temp_key_item.key_value[index][1]
-      let common = `ops=set&&ip=${this.redis_ip}&key=${this.temp_key_item.name}&value=${new_value}`
+      let common = `ops=set&&id=${this.redis_id}&key=${this.temp_key_item.name}&value=${new_value}`
       let body = null
       if (this.temp_key_item.type === 'list') {
         let list_pos = (this.list_page - 1) * this.value_count + index
-        body = await config.myaxios.get(`data?method=list_ops&pos=${list_pos}&${common}`)
+        body = await C.myaxios.get(`data?method=list_ops&pos=${list_pos}&${common}`)
       } else if (this.temp_key_item.type === 'hash') {
         let hash_key = this.origin_key_item.key_value[index][0]
-        body = await config.myaxios.get(`data?method=hash_ops&hash_key=${hash_key}&${common}`)
+        body = await C.myaxios.get(`data?method=hash_ops&hash_key=${hash_key}&${common}`)
       } else if (this.temp_key_item.type === 'set') {
         let set_key = this.origin_key_item.key_value[index][1]
-        body = await config.myaxios.get(`data?method=set_ops&set_key=${set_key}&${common}`)
+        body = await C.myaxios.get(`data?method=set_ops&set_key=${set_key}&${common}`)
       } else if (this.temp_key_item.type === 'zset') {
         let zset_key = this.origin_key_item.key_value[index][0]
         let reg=/^[0-9]+.?[0-9]*$/
@@ -526,7 +538,7 @@ export default {
           this.$message.warning('Redis的ZSET类型的值只支持数字')
           return
         }
-        body = await config.myaxios.get(`data?method=zset_ops&zset_key=${zset_key}&${common}`)
+        body = await C.myaxios.get(`data?method=zset_ops&zset_key=${zset_key}&${common}`)
       }
 
       if (body.status === 200 && body.data && body.data.code === 0) {

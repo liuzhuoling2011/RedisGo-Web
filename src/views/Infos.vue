@@ -224,7 +224,7 @@ export default {
     async get_config() {
       this.showConfig = true
       this.configData = []
-      let comm = 'config get *'
+      let comm = 'C get *'
       let body = await C.myaxios.get(`/containers?method=execute&id=${this.redis_id}&command=${comm}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         let output = body.data.data
