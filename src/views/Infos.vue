@@ -15,8 +15,9 @@
           </template>
         </a-table>
       </a-col>
-      <a-col :span="8">
-        <a-collapse accordion activeKey="1" style="font-size: 15px">
+      <a-col :span="8" >
+        <a-collapse v-if="info_data" accordion activeKey="1" style="font-size: 15px">
+          <a-spin/>
           <a-collapse-panel key="1">
             <template slot="header"><a-icon type="home" /> 服务端信息 | {{redis_id}}</template>
             <a-card>
@@ -142,7 +143,7 @@
 
 <script>
 import moment from 'moment'
-import {mapState, mapMutations} from 'vuex'
+import {mapState, mapGetters, mapMutations} from 'vuex'
 import C from "@/config"
 import U from "@/utils"
 
@@ -217,7 +218,8 @@ export default {
     }
   },
   computed: {
-    ...mapState(['redis_id', 'info_data']),
+    ...mapState(['redis_id']),
+    ...mapGetters(['info_data']),
   },
   methods: {
     ...mapMutations(['setRedisInfo']),

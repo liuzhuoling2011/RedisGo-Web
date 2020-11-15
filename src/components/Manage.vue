@@ -69,6 +69,7 @@
       <a-input placeholder="端口" size="large" allowClear
         v-model="container_tmp.port"
         style="margin-top: 10px"
+        :disabled="children_drawl_name === '修改连接'"
         @pressEnter="press_enter"
       >
         <a-icon slot="prefix" type="appstore" />
@@ -123,7 +124,7 @@ export default {
     edit_container(item) {
       this.visible_children = true
       this.children_drawl_name = "修改连接"
-      this.container_tmp.id = item.ip + ":" + item.port
+      this.container_tmp.id = item.id
       this.container_tmp.ip = item.ip
       this.container_tmp.password = item.password
       this.container_tmp.name = item.name

@@ -92,7 +92,6 @@ export default new Vuex.Store({
 
     containers: {},
 
-    info_data: {},
     info_data_map: {},
 
     update_flag: false,
@@ -104,6 +103,11 @@ export default new Vuex.Store({
     subscribe_keys: {},
     subscribe_keys_history: {},
     redis_output: {}
+  },
+  getters: {
+    info_data (state) {
+      return state.info_data_map[state.redis_id]
+    }
   },
   mutations: {
     setUserInfo(state, payload) {
@@ -133,8 +137,7 @@ export default new Vuex.Store({
       }
     },
     setRedisInfo(state, payload) {
-      state.info_data = payload.info_data
-      state.info_data_map[state.redis_id] = payload.info_data
+      Vue.set(state.info_data_map, state.redis_id, payload.info_data)
     },
     setUpdateFlag(state) {
       state.update_flag = true
@@ -208,7 +211,7 @@ export default new Vuex.Store({
   actions: {
     async initContainers({ commit }) {
       let redis_id = ""
-      let body = await C.myaxios.get("containers?method=list")
+      let body = await C.myaxios.get("containers?method=check")
       if (body.status === 200 && body.data && body.data.code === 0) {
         let data = body.data.data
         for (let c in data) {

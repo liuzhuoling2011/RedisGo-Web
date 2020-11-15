@@ -5,7 +5,7 @@
         <a-row :gutter="8" type="flex" justify="space-between">
           <a-col span="8">
             <a-tooltip title="数据库选择">
-              <a-select style="width: 100%" :value="redis_db" @change="change_db">
+              <a-select v-if="info_data !== undefined" style="width: 100%" :value="redis_db" @change="change_db">
                 <a-select-option v-for="item in dbs" :value="item.value" v-bind:key="item.value">{{item.label}}</a-select-option>
               </a-select>
             </a-tooltip>
@@ -160,7 +160,7 @@
 import C from '@/config'
 import U from "@/utils";
 import jsonView from 'vue-json-views'
-import {mapState, mapMutations} from 'vuex'
+import {mapState, mapGetters, mapMutations} from 'vuex'
 
 export default {
   name: 'RedisData',
@@ -199,7 +199,8 @@ export default {
     }
   },
   computed: {
-    ...mapState(['redis_id', 'info_data']),
+    ...mapState(['redis_id']),
+    ...mapGetters(['info_data']),
     dbs: function () {
       let all_db = []
       for (let i = 0; i < 16; i++) {
