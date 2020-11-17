@@ -3,13 +3,13 @@
     <a-row>
       <a-col :span="16" style="padding-right: 10px">
         <a-divider>高时延日志</a-divider>
-        <a-table rowKey="id" :columns="logs_columns" :loading="logs_loading" :dataSource="logs_data" :pagination="false" :scroll="{ y: 280 }" style="word-break: break-all">
+        <a-table rowKey="id" :columns="logs_columns" :loading="logs_loading" :dataSource="redis_logs" :pagination="false" :scroll="{ y: 280 }" style="word-break: break-all">
           <template slot="time" slot-scope="text">
             {{moment(text*1000).format('YYYY-MM-DD HH:mm:ss')}}
           </template>
         </a-table>
         <a-divider>客户端列表</a-divider>
-        <a-table rowKey="id" :columns="clients_columns" :loading="clients_loading" :dataSource="clients_data" :pagination="{ pageSize: 50 }" :scroll="{ y: 258 }" >
+        <a-table rowKey="id" :columns="clients_columns" :loading="clients_loading" :dataSource="redis_clients" :pagination="{ pageSize: 50 }" :scroll="{ y: 258 }" >
           <template slot="time" slot-scope="text">
             {{formatSeconds(text)}}
           </template>
@@ -124,14 +124,12 @@
         </a-collapse>
       </a-col>
     </a-row>
-    <a-drawer
-      width=560
-      placement="right"
+    <a-drawer width=560 placement="right"
       @close="showConfig = false"
       :visible="showConfig"
     >
       <div slot="title" >Redis配置详情</div>
-      <a-list bordered style="max-height: 88vh; overflow: auto" :dataSource="configData">
+      <a-list bordered style="max-height: 88vh; overflow: auto" :dataSource="redis_configs">
         <a-list-item slot="renderItem" slot-scope="item">
           <a slot="actions">{{item.value}}</a>
           {{item.key}}
@@ -143,8 +141,7 @@
 
 <script>
 import moment from 'moment'
-import {mapState, mapGetters, mapMutations} from 'vuex'
-import C from "@/config"
+import {mapState, mapGetters, mapActions} from 'vuex'
 import U from "@/utils"
 
 export default {
@@ -154,11 +151,8 @@ export default {
       moment: moment,
       formatSeconds: U.formatSeconds,
       showConfig: false,
-      configData: [],
       logs_loading: false,
       clients_loading: false,
-      logs_data: [],
-      clients_data: [],
       logs_columns: [
         {
           title: 'ID',
@@ -218,31 +212,14 @@ export default {
     }
   },
   computed: {
-    ...mapState(['redis_id']),
+    ...mapState(['redis_logs', 'redis_clients', 'redis_configs']),
     ...mapGetters(['info_data']),
   },
   methods: {
-    ...mapMutations(['setRedisInfo']),
+    ...mapActions(["getRedisInfo", "getRedisLogs", "getRedisClients", "getRedisConfig"]),
     async get_config() {
+      await this.getRedisConfig()
       this.showConfig = true
-      this.configData = []
-      let comm = 'C get *'
-      let body = await C.myaxios.get(`/containers?method=execute&id=${this.redis_id}&command=${comm}`)
-      if (body.status === 200 && body.data && body.data.code === 0) {
-        let output = body.data.data
-        for (let i = 0; i < output.length; i += 2) {
-          if (output[i] === 'client-output-buffer-limit') {
-            let buffers = output[i + 1].split(' ')
-            this.configData.push({'key': `${output[i]}-${buffers[0]}`, 'value': `${buffers[1]} ${buffers[2]} ${buffers[3]}`})
-            this.configData.push({'key': `${output[i]}-${buffers[4]}`, 'value': `${buffers[5]} ${buffers[6]} ${buffers[7]}`})
-            this.configData.push({'key': `${output[i]}-${buffers[8]}`, 'value': `${buffers[9]} ${buffers[10]} ${buffers[11]}`})
-          } else {
-            this.configData.push({'key': output[i], 'value': output[i + 1]})
-          }
-        }
-      } else {
-        this.$message.error(body.data.msg)
-      }
     },
     format_db_nums(str) {
       if (str === undefined) return 0
@@ -250,38 +227,16 @@ export default {
       let s = str.split(',')[0]
       return s.split('=')[1]
     },
-    async get_info() {
-      let body = await C.myaxios.get(`/containers?method=info&id=${this.redis_id}`)
-      if (body.status === 200 && body.data && body.data.code === 0) {
-        this.setRedisInfo({'info_data': body.data.data})
-      } else {
-        this.$message.error(body.data.msg)
-      }
-    },
-    async get_logs() {
+    async get_redis_infos() {
       this.logs_loading = true
-      let body = await C.myaxios.get(`/containers?method=logs&id=${this.redis_id}`)
-      if (body.status === 200 && body.data && body.data.code === 0) {
-        this.logs_data = body.data.data
-        this.logs_loading = false
-      } else {
-        this.$message.error(body.data.msg)
-      }
-    },
-    async get_clients() {
+      await this.getRedisLogs()
+      this.logs_loading = false
+
       this.clients_loading = true
-      let body = await C.myaxios.get(`/containers?method=clients&id=${this.redis_id}`)
-      if (body.status === 200 && body.data && body.data.code === 0) {
-        this.clients_data = body.data.data
-        this.clients_loading = false
-      } else {
-        this.$message.error(body.data.msg)
-      }
-    },
-    get_redis_infos() {
-      this.get_info()
-      this.get_logs()
-      this.get_clients()
+      await this.getRedisClients()
+      this.clients_loading = false
+
+      await this.getRedisInfo()
     },
   }
 }

@@ -87,11 +87,14 @@ export default new Vuex.Store({
   state: {
     redis_id: "",
     redis_name: "",
+    redis_logs: [],
+    redis_clients: [],
+    redis_configs: [],
+
     websocket: null,
     websocket_ping: null,
 
     containers: {},
-
     info_data_map: {},
 
     update_flag: false,
@@ -113,6 +116,10 @@ export default new Vuex.Store({
     setUserInfo(state, payload) {
       state.login = payload.login
       state.user = payload.user
+    },
+    setStateData(state, payload) {
+      // state.log(payload)
+      state[payload.type] = payload.data
     },
     setRedisIDName(state, payload) {
       state.redis_id = payload.redis_id
@@ -211,7 +218,7 @@ export default new Vuex.Store({
   actions: {
     async initContainers({ commit }) {
       let redis_id = ""
-      let body = await C.myaxios.get("containers?method=check")
+      let body = await C.myaxios.get("/containers?method=check")
       if (body.status === 200 && body.data && body.data.code === 0) {
         let data = body.data.data
         for (let c in data) {
@@ -229,9 +236,54 @@ export default new Vuex.Store({
       }
     },
     async updateContainerStatus({ commit }) {
-      let body = await C.myaxios.get("containers?method=check")
+      let body = await C.myaxios.get("/containers?method=check")
       if (body.status === 200 && body.data && body.data.code === 0) {
         commit("setContainers", { containers: body.data.data })
+      }
+    },
+    async getRedisInfo({ state, commit }) {
+      let body = await C.myaxios.get(`/containers?method=info&id=${state.redis_id}`)
+      if (body.status === 200 && body.data && body.data.code === 0) {
+        commit("setRedisInfo", { info_data: body.data.data })
+      } else {
+        Vue.prototype.$message.error(body.data.msg)
+      }
+    },
+    async getRedisLogs({ state, commit }) {
+      let body = await C.myaxios.get(`/containers?method=logs&id=${state.redis_id}`)
+      if (body.status === 200 && body.data && body.data.code === 0) {
+        commit("setStateData", { type: 'redis_logs', data: body.data.data })
+      } else {
+        Vue.prototype.$message.error(body.data.msg)
+      }
+    },
+    async getRedisClients({ state, commit }) {
+      let body = await C.myaxios.get(`/containers?method=clients&id=${state.redis_id}`)
+      if (body.status === 200 && body.data && body.data.code === 0) {
+        commit("setStateData", { type: 'redis_clients', data: body.data.data })
+      } else {
+        Vue.prototype.$message.error(body.data.msg)
+      }
+    },
+    async getRedisConfig({ state, commit }) {
+      let configData = []
+      let comm = 'Config get *'
+      let body = await C.myaxios.get(`/containers?method=execute&id=${state.redis_id}&command=${comm}`)
+      if (body.status === 200 && body.data && body.data.code === 0) {
+        let output = body.data.data
+        for (let i = 0; i < output.length; i += 2) {
+          if (output[i] === 'client-output-buffer-limit') {
+            let buffers = output[i + 1].split(' ')
+            configData.push({'key': `${output[i]}-${buffers[0]}`, 'value': `${buffers[1]} ${buffers[2]} ${buffers[3]}`})
+            configData.push({'key': `${output[i]}-${buffers[4]}`, 'value': `${buffers[5]} ${buffers[6]} ${buffers[7]}`})
+            configData.push({'key': `${output[i]}-${buffers[8]}`, 'value': `${buffers[9]} ${buffers[10]} ${buffers[11]}`})
+          } else {
+            configData.push({'key': output[i], 'value': output[i + 1]})
+          }
+        }
+        commit("setStateData", { type: 'redis_configs', data: configData })
+      } else {
+        Vue.prototype.$message.error(body.data.msg)
       }
     },
   }

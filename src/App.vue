@@ -107,16 +107,7 @@ import CommandLine from "@/components/CommandLine";
 
 export default {
   name: "app",
-  components: {
-    Infos,
-    Data,
-    Charts,
-    PubSub,
-    About,
-    Update,
-    Manage,
-    CommandLine
-  },
+  components: {Infos, Data, Charts, PubSub, About, Update, Manage, CommandLine},
   data() {
     return {
       memu_key: "",
