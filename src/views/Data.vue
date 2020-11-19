@@ -160,7 +160,7 @@
 import C from '@/config'
 import U from "@/utils";
 import jsonView from 'vue-json-views'
-import {mapState, mapGetters, mapMutations} from 'vuex'
+import {mapState, mapGetters, mapMutations, mapActions} from 'vuex'
 
 export default {
   name: 'RedisData',
@@ -193,7 +193,7 @@ export default {
   watch: {
     redis_id(val) {
       if (val !== '') {
-        this.get_info()
+        this.getRedisInfo()
         this.search_keys()
       }
     }
@@ -224,6 +224,7 @@ export default {
   },
   methods: {
     ...mapMutations(['setRedisInfo']),
+    ...mapActions(["getRedisInfo"]),
     cal_textarea_lines(content) {
       return parseInt(content.length / 100.0) + 1
     },
@@ -241,12 +242,6 @@ export default {
           this.$message.success(`成功切换至DB${value}`)
           await this.search_keys()
         }
-      }
-    },
-    async get_info() {
-      const body = await C.myaxios.get(`containers?method=info&id=${this.redis_id}`)
-      if (body.status === 200 && body.data && body.data.code === 0) {
-        this.setRedisInfo({'info_data': body.data.data})
       }
     },
     async search_keys(reset=true, search_next=true) {
@@ -300,7 +295,7 @@ export default {
     },
     async refresh() {
       await this.get_ttl()
-      await this.get_info()
+      await this.getRedisInfo()
       await this.get_key_value(this.origin_key_item.name, this.origin_key_item.type)
       if (this.present_mode === 'Json') {
         this.temp_key_item.key_value = JSON.parse(this.temp_key_item.key_value)
@@ -312,7 +307,7 @@ export default {
         if (body.data.data === true || body.data.data === "OK") {
           this.$message.success('重命名成功')
           this.origin_key_item.name = this.temp_key_item.name
-          await this.get_info()
+          await this.getRedisInfo()
           await this.search_keys()
         } else {
           this.$message.error('重命名失败: ' + body.data.data)
@@ -325,7 +320,7 @@ export default {
         if (body.data.data === true || body.data.data === "OK") {
           this.$message.success('更新超时时间成功')
           await this.search_keys()
-          await this.get_info()
+          await this.getRedisInfo()
         }
       }
     },
@@ -513,7 +508,7 @@ export default {
         this.$message.success('删除成功')
         this.temp_key_item.key_value.splice(index, 1)
         this.origin_key_item.key_value.splice(index, 1)
-        await this.get_info()
+        await this.getRedisInfo()
       }
     },
     async edit_item_value(index) {

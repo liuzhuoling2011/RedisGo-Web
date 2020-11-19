@@ -212,7 +212,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(['redis_logs', 'redis_clients', 'redis_configs']),
+    ...mapState(['redis_id', 'redis_logs', 'redis_clients', 'redis_configs']),
     ...mapGetters(['info_data']),
   },
   methods: {

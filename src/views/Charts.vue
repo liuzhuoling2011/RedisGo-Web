@@ -139,6 +139,11 @@ export default {
   watch: {
     chart_change_count() {
       this.updateCharts()
+    },
+    redis_id(val) {
+      if (val !== '') {
+        this.resetCharts()
+      }
     }
   },
   methods: {

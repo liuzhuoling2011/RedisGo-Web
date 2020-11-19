@@ -8,11 +8,7 @@
           >
             <div slot="header">
               <b>Redis输出信息:</b>
-              <a-tag style="position: absolute; right: 24px;" color="red"
-                @click="delete_pubsub_output(-1)"
-              >
-                清空信息
-              </a-tag>
+              <a-tag style="position: absolute; right: 24px;" color="red" @click="delete_pubsub_output(-1)">清空信息</a-tag>
             </div>
             <a-list-item slot="renderItem" slot-scope="item, index">
               <a-list-item-meta :description="item[1]">
@@ -28,15 +24,11 @@
         </div>
       </a-col>
       <a-col :span="8" style="padding-top: 8px">
-        <a-input
+        <a-input style="margin-bottom: 8px" placeholder="发布/订阅的Channel"
           v-model="pubsub_key"
-          style="margin-bottom: 8px"
-          placeholder="发布/订阅的Channel"
         />
-        <a-textarea
+        <a-textarea style="margin-bottom: 8px" :rows="10"
           v-model="pubsub_msg"
-          :rows="10"
-          style="margin-bottom: 8px"
           :placeholder="pubsub_msg_placeholder"
         />
         <a-button type="primary" @click="publish_msg" style="background: #108ee9; border-color: #108ee9">发布</a-button>
@@ -45,80 +37,52 @@
         <a-divider>发布列表</a-divider>
         <div style="line-height: 2; max-height: 22vh; overflow: auto">
           <template v-for="tag in publish_keys[redis_id]">
-            <a-tooltip v-if="tag.length > 80" :key="tag" :title="tag">
+            <a-tooltip :key="tag" :title="tag">
               <a-tag color="#108ee9" :key="tag"
                 @click="copyPublishMsg(tag)"
                 :closable="true"
                 :afterClose="() => handlePubClose(tag)"
               >
-                {{ `${tag.slice(0, 80)}...` }}
+                {{ tag.length > 80 ? `${tag.slice(0, 80)}...` : tag}}
               </a-tag>
             </a-tooltip>
-            <a-tag color="#108ee9" v-else
-              :key="tag"
-              @click="copyPublishMsg(tag)"
-              :closable="true"
-              :afterClose="() => handlePubClose(tag)"
-            >
-              {{ tag }}
-            </a-tag>&nbsp;&nbsp;
           </template>
         </div>
         <a-divider>订阅列表</a-divider>
         <div style="line-height: 2; max-height: 22vh; overflow: auto">
           <template v-for="tag in subscribe_keys_show">
-            <a-tooltip v-if="tag.length > 80" :key="tag" :title="tag">
+            <a-tooltip :key="tag" :title="tag">
               <a-tag color="#87d068"
                 :key="tag"
                 @click="pubsub_key = tag"
                 :closable="true"
                 :afterClose="() => handleTagClose(tag)"
               >
-                {{ `${tag.slice(0, 80)}...` }}
+                {{ tag.length > 80 ? `${tag.slice(0, 80)}...` : tag}}
               </a-tag>
             </a-tooltip>
-            <a-tag color="#87d068" v-else
-              :key="tag"
-              @click="pubsub_key = tag"
-              :closable="true"
-              :afterClose="() => handleTagClose(tag)"
-            >
-              {{ tag }}
-            </a-tag>
           </template>
           <template v-for="tag in subscribe_keys_history_show">
-            <a-tooltip v-if="tag.length > 80" :key="tag" :title="tag">
+            <a-tooltip :key="tag" :title="tag">
               <a-tag color="darkgrey"
                 :key="tag"
                 @click="pubsub_key = tag"
                 :closable="true"
                 :afterClose="() => handleTagHisClose(tag)"
               >
-                {{ `${tag.slice(0, 80)}...` }}
+                {{ tag.length > 80 ? `${tag.slice(0, 80)}...` : tag}}
               </a-tag>
             </a-tooltip>
-            <a-tag color="darkgrey" v-else
-              :key="tag"
-              @click="pubsub_key = tag"
-              :closable="true"
-              :afterClose="() => handleTagHisClose(tag)"
-            >
-              {{ tag }}
-            </a-tag>
           </template>
         </div>
       </a-col>
     </a-row>
-    <a-modal
+    <a-modal width="50vw"
       v-model="showJson"
       :footer="null"
       :destroyOnClose="true"
-      width="50vw"
     >
-      <json-view
-        :data="jsonData"
-        style="margin-top: 20px; overflow: auto; max-height: 72vh"
-      />
+      <json-view :data="jsonData" style="margin-top: 20px; overflow: auto; max-height: 72vh"/>
     </a-modal>
   </div>
 </template>
@@ -181,7 +145,7 @@ export default {
         this.removePubsubOutput({ index: index })
       }
     },
-    publish_msg() {
+    async publish_msg() {
       if (this.redis_id === "") {
         this.$message.warning("未检测到有效的Redis连接, 请在设置中添加", 10)
         return
@@ -190,30 +154,20 @@ export default {
         this.$message.error("请输入Channel再试")
         return
       }
-      C.myaxios
-        .get(`/containers?method=publish&id=${this.redis_id}&key=${encodeURIComponent(this.pubsub_key)}&msg=${encodeURIComponent(this.pubsub_msg)}`)
-        .then(result => {
-          let res = result.data;
-          if (res.code !== 0) {
-            this.$message.error(res.msg);
-          } else {
-            this.$message.success(`${this.redis_id} => ${res.msg} 发布成功`);
-            if (this.publish_keys[this.redis_id] === undefined) {
-              this.$set(this.publish_keys, this.redis_id, []);
-            }
-            if (
-              this.publish_keys[this.redis_id].indexOf(
-                res.msg + " | " + res.data
-              ) === -1
-            ) {
-              this.publish_keys[this.redis_id].push(res.msg + " | " + res.data);
-              localStorage.setItem(
-                "publish_keys",
-                JSON.stringify(this.publish_keys)
-              );
-            }
-          }
-        });
+      let body = await C.myaxios.get(`/containers?method=publish&id=${this.redis_id}&key=${encodeURIComponent(this.pubsub_key)}&msg=${encodeURIComponent(this.pubsub_msg)}`)
+      if (body.status === 200 && body.data && body.data.code === 0) {
+        let res = body.data
+        this.$message.success(`${this.redis_id} => ${res.msg} 发布成功`)
+        if (this.publish_keys[this.redis_id] === undefined) {
+          this.$set(this.publish_keys, this.redis_id, [])
+        }
+        if (this.publish_keys[this.redis_id].indexOf(res.msg + " | " + res.data) === -1) {
+          this.publish_keys[this.redis_id].push(res.msg + " | " + res.data)
+          localStorage.setItem("publish_keys", JSON.stringify(this.publish_keys))
+        }
+      } else {
+        this.$message.error(body.data.msg)
+      }
     },
     subscribe_msg() {
       if (this.redis_id === "") {
@@ -230,7 +184,7 @@ export default {
       if (this.subscribe_keys_flag[this.redis_id][this.pubsub_key] === undefined) {
         this.sendWebsocketMsg({
           type: 2,
-          ip: this.redis_id,
+          id: this.redis_id,
           channel: this.pubsub_key,
           command: "open"
         })
@@ -253,7 +207,7 @@ export default {
       if (this.subscribe_keys_flag[this.redis_id][removedTag]) {
         this.sendWebsocketMsg({
           type: 2,
-          ip: this.redis_id,
+          id: this.redis_id,
           channel: removedTag,
           command: "close"
         })

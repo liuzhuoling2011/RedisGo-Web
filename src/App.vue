@@ -127,13 +127,11 @@ export default {
         return;
       }
       if (this.memu_key === "redis_info") {
-        // this.$refs.infos.get_redis_infos();
+        await this.$refs.infos.get_redis_infos()
       } else if (this.memu_key === "redis_data") {
-        await this.$refs.data.get_info();
-        await this.$refs.data.search_keys();
+        await this.$refs.data.search_keys()
       } else if (this.memu_key === "redis_monitor") {
-        this.websocket_get_redis_info();
-        this.$refs.charts.resetCharts();
+        this.websocket_get_redis_info()
       } else if (this.memu_key === "redis_pubsub") {
         // todo
       } else {
@@ -153,21 +151,15 @@ export default {
       if (this.info_data_flags[this.redis_id] === undefined) {
         this.sendWebsocketMsg({
           type: 1,
-          ip: this.redis_id
+          id: this.redis_id
         });
-        this.info_data_flags[this.redis_id] = true;
+        this.info_data_flags[this.redis_id] = true
       }
     },
     async change_redis(val) {
-      this.setRedisIDName({ redis_id: val });
+      this.setRedisIDName({ redis_id: val })
       if (this.memu_key === "redis_monitor") {
-        this.websocket_get_redis_info();
-        this.$refs.charts.resetCharts();
-      } else if (this.memu_key === "redis_info") {
-        // this.$refs.infos.get_redis_infos();
-      } else if (this.memu_key === "redis_data") {
-        // await this.$refs.data.get_info();
-        // await this.$refs.data.search_keys();
+        this.websocket_get_redis_info()
       }
     },
     show_command() {

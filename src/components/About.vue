@@ -16,9 +16,6 @@
 <script>
 export default {
   name: 'About',
-  // props: {
-  //   about_flag: Boolean,
-  // },
   data() {
     return {
       version: 'RedisGo Web V2.0.4',
@@ -26,39 +23,9 @@ export default {
       pic_src: 'http://qiniu.zoranjojo.top/zoranjojo.jpg'
     }
   },
-  // computed: {
-  //   // 计算属性的 getter, 带有缓存
-  //   aboutFlag: {
-  //     get: function() {
-  //       return this.about_flag
-  //     },
-  //     set: function (val) {
-  //       this.about_flag = val
-  //     }
-  //   },
-  //   reversedMessage: function () {
-  //     // `this` 指向 vm 实例
-  //     return this.message.split('').reverse().join('')
-  //   }
-  // },
   methods: {
     showAbout(){
       this.about_flag = true
-      // const h = this.$createElement
-      // this.$success({
-      //   title: 'RedisGo Web V1.1.1',
-      //   width: 420,
-      //   content: h('div', {
-      //     style: {
-      //       'text-align': 'center',
-      //       'padding-right': '35px'
-      //     },
-      //   }, [
-      //     h('img', {style: {width: '50%'}, attrs: {src: "http://qiniu.zoranjojo.top/zoranjojo.jpg"}}),
-      //     h('p', '为更好的监控/管理内网的Redis而倾心打造'),
-      //     h('p', '可以关注公众号或者Github获得最新的消息'),
-      //   ]),
-      // })
     }
   }
 }

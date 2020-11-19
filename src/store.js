@@ -127,9 +127,6 @@ export default new Vuex.Store({
         state.redis_name = payload.redis_name
       }
     },
-    setContainers(state, payload) {
-      state.containers = payload.containers
-    },
     setContainer(state, payload) {
       Vue.set(state.containers, payload.id, payload.container)
     },
@@ -145,9 +142,6 @@ export default new Vuex.Store({
     },
     setRedisInfo(state, payload) {
       Vue.set(state.info_data_map, state.redis_id, payload.info_data)
-    },
-    setUpdateFlag(state) {
-      state.update_flag = true
     },
     setPubsubKeys(state, payload) {
       if (payload.redis_id !== undefined) {
@@ -231,14 +225,14 @@ export default new Vuex.Store({
           }
         }
         if (redis_id !== "") {
-          commit("setContainers", { containers: data })
+          commit("setStateData", { type: 'containers', data: data })
         }
       }
     },
     async updateContainerStatus({ commit }) {
       let body = await C.myaxios.get("/containers?method=check")
       if (body.status === 200 && body.data && body.data.code === 0) {
-        commit("setContainers", { containers: body.data.data })
+        commit("setStateData", { type: 'containers', data: body.data.data })
       }
     },
     async getRedisInfo({ state, commit }) {
