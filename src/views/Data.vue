@@ -2,6 +2,17 @@
   <div ref="data_view">
     <a-row type="flex" justify="center">
       <a-col span="7">
+<!--        <a-input-group compact>-->
+<!--          <a-select v-if="info_data !== undefined" style="width: 110px" :value="redis_db" @change="change_db">-->
+<!--            <a-select-option v-for="item in dbs" :value="item.value" :key="item.value">{{item.label}}</a-select-option>-->
+<!--          </a-select>-->
+<!--          <a-input-search style="width: 200px" placeholder="请输入要搜索的Key"-->
+<!--            v-model="search_key"-->
+<!--            @search="search_keys(true, true)"-->
+<!--          />-->
+<!--        </a-input-group>-->
+<!--        <a-button style="position: absolute; right: 0px; top: 0px" icon="plus" @click="add_key_click">添加</a-button>-->
+
         <a-row :gutter="8" type="flex" justify="space-between">
           <a-col span="8">
             <a-tooltip title="数据库选择">
@@ -50,9 +61,9 @@
         <a-row :gutter="8" type="flex" justify="space-between">
           <a-col span="8">
             <a-tooltip title="Key的名称">
-              <a-input-group>
-                <a-input :value="temp_key_item.type.toUpperCase()" style="width: 22%" disabled/>
+              <a-input-group compact>
                 <a-input style="width: 78%" placeholder="名称" v-model="temp_key_item.name" @pressEnter="rename_key">
+                  <span slot="addonBefore">{{temp_key_item.type.toUpperCase()}}</span>
                   <a-icon type="check" slot="suffix" @click="rename_key"/>
                 </a-input>
               </a-input-group>
@@ -61,6 +72,7 @@
           <a-col span="3">
             <a-tooltip title="过期时间, -1 为永久, 单位: 秒">
               <a-input style="width: 100%" placeholder="过期时间" v-model="temp_key_item.ttl" @pressEnter="update_ttl">
+                <span slot="addonBefore">TTL</span>
                 <a-icon type="check" slot="suffix" @click="update_ttl"/>
               </a-input>
             </a-tooltip>
@@ -152,14 +164,16 @@
     <a-modal v-model="showJsonModal" :footer="null" :destroyOnClose="true" width="50vw">
       <json-view :data="jsonDataModal" style="margin-top: 20px; overflow: auto; max-height: 72vh"/>
     </a-modal>
+    <AddDataModal ref="add_data_modal" :search_keys="search_keys"/>
   </div>
 </template>
 
 <script>
 // import moment from 'moment'
 import C from '@/config'
-import U from "@/utils";
+import U from "@/utils"
 import jsonView from 'vue-json-views'
+import AddDataModal from "@/components/AddDataModal"
 import {mapState, mapGetters, mapMutations, mapActions} from 'vuex'
 
 export default {
@@ -189,7 +203,7 @@ export default {
       temp_key_item: {name: "", type: 'None', len: 0, ttl: -1, key_value: '暂无内容'},
     }
   },
-  components: { jsonView },
+  components: { jsonView, AddDataModal },
   watch: {
     redis_id(val) {
       if (val !== '') {
@@ -204,7 +218,7 @@ export default {
     dbs: function () {
       let all_db = []
       for (let i = 0; i < 16; i++) {
-        all_db.push({'value': i, 'label': `DB${i} (${this.format_db_nums(this.info_data['db'+i])} keys)`})
+        all_db.push({'value': i, 'label': `DB${i} (${this.format_db_nums(this.info_data['db'+i])})`})
       }
       return all_db
     },
@@ -266,7 +280,7 @@ export default {
       }
     },
     add_key_click() {
-      this.$message.warning("添加key功能暂未实现, 请耐心等待")
+      this.$refs.add_data_modal.show()
     },
     async rm_key() {
       const body = await C.myaxios.get(`data?method=rm_key&id=${this.redis_id}&key=${this.origin_key_item.name}`)

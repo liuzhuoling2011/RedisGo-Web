@@ -79,7 +79,7 @@ export default {
         this.redis_command_output += `${moment().format("YYYY-MM-DD HH:mm:ss")}\t${output}\n`
         setTimeout(() => {
           const textarea = document.getElementById("redis_command_output")
-          textarea.scrollTop = textarea.scrollHeight;
+          textarea.scrollTop = textarea.scrollHeight
         }, 100)
       }
     }
