@@ -2,36 +2,19 @@
   <div ref="data_view">
     <a-row type="flex" justify="center">
       <a-col span="7">
-<!--        <a-input-group compact>-->
-<!--          <a-select v-if="info_data !== undefined" style="width: 110px" :value="redis_db" @change="change_db">-->
-<!--            <a-select-option v-for="item in dbs" :value="item.value" :key="item.value">{{item.label}}</a-select-option>-->
-<!--          </a-select>-->
-<!--          <a-input-search style="width: 200px" placeholder="请输入要搜索的Key"-->
-<!--            v-model="search_key"-->
-<!--            @search="search_keys(true, true)"-->
-<!--          />-->
-<!--        </a-input-group>-->
-<!--        <a-button style="position: absolute; right: 0px; top: 0px" icon="plus" @click="add_key_click">添加</a-button>-->
-
-        <a-row :gutter="8" type="flex" justify="space-between">
-          <a-col span="8">
-            <a-tooltip title="数据库选择">
-              <a-select v-if="info_data !== undefined" style="width: 100%" :value="redis_db" @change="change_db">
-                <a-select-option v-for="item in dbs" :value="item.value" v-bind:key="item.value">{{item.label}}</a-select-option>
-              </a-select>
-            </a-tooltip>
-          </a-col>
-          <a-col span="10">
-            <a-tooltip title="请输入要搜索的Key">
-              <a-input-search style="width: 100%" v-model="search_key" placeholder="请输入要搜索的Key" @search="search_keys(true, true)" />
-            </a-tooltip>
-          </a-col>
-          <a-col span="6" style="text-align: right">
-            <a-button icon="plus" @click="add_key_click">添加</a-button>
-          </a-col>
-        </a-row>
+        <a-input-group compact>
+          <a-select v-if="info_data !== undefined" style="width: 110px" :value="redis_db" @change="change_db">
+            <a-select-option v-for="item in dbs" :value="item.value" :key="item.value">{{item.label}}</a-select-option>
+          </a-select>
+          <a-input-search style="width: 200px" placeholder="请输入要搜索的Key"
+            v-model="search_key"
+            @search="search_keys(true, true)"
+          />
+        </a-input-group>
+        <a-button style="position: absolute; right: 0px; top: 0px" icon="plus" @click="add_key_click">添加</a-button>
 
         <div style="margin-top: 10px"/>
+
         <a-list bordered :dataSource="keys" style="max-height: 80vh; overflow: auto; background-color: white">
           <a-list-item slot="renderItem" slot-scope="item" @click="click_item(item)">
             <a-list-item-meta>
@@ -58,62 +41,60 @@
       </a-col>
 
       <a-col offset="1" :md="16" :xl="16" :xxl="12">
-        <a-row :gutter="8" type="flex" justify="space-between">
-          <a-col span="8">
-            <a-tooltip title="Key的名称">
-              <a-input-group compact>
-                <a-input style="width: 78%" placeholder="名称" v-model="temp_key_item.name" @pressEnter="rename_key">
-                  <span slot="addonBefore">{{temp_key_item.type.toUpperCase()}}</span>
-                  <a-icon type="check" slot="suffix" @click="rename_key"/>
-                </a-input>
-              </a-input-group>
+        <template v-if="temp_key_item.type !== 'None'" >
+          <a-input style="width: 268px" placeholder="名称" v-model="temp_key_item.name" @pressEnter="rename_key">
+            <span slot="addonBefore">{{temp_key_item.type.toUpperCase()}}</span>
+            <a-icon type="check" slot="suffix" @click="rename_key"/>
+          </a-input>
+
+          <a-input style="width: 136px; margin-left: 8px" placeholder="过期时间" v-model="temp_key_item.ttl" @pressEnter="update_ttl">
+            <span slot="addonBefore">TTL</span>
+            <a-icon type="check" slot="suffix" @click="update_ttl"/>
+          </a-input>
+
+          <a-button-group style="margin-left: 8px">
+            <a-tooltip title="刷新">
+              <a-button icon="sync" @click="refresh" style="color: green"/>
             </a-tooltip>
-          </a-col>
-          <a-col span="3">
-            <a-tooltip title="过期时间, -1 为永久, 单位: 秒">
-              <a-input style="width: 100%" placeholder="过期时间" v-model="temp_key_item.ttl" @pressEnter="update_ttl">
-                <span slot="addonBefore">TTL</span>
-                <a-icon type="check" slot="suffix" @click="update_ttl"/>
-              </a-input>
+            <a-tooltip title="删除Key">
+              <a-button icon="delete" @click="rm_key" style="color: red"/>
             </a-tooltip>
-          </a-col>
-          <a-col span="4">
-            <a-button-group style="width: 100%">
-              <a-tooltip title="编辑内容" v-if="temp_key_item.type === 'string'">
-                <a-button icon="edit" @click="edit_value" style="width: 33%; color: blue"/>
-              </a-tooltip>
-              <a-tooltip title="刷新">
-                <a-button icon="sync" @click="refresh" style="width: 33%; color: green"/>
-              </a-tooltip>
-              <a-tooltip title="删除Key">
-                <a-button icon="delete" @click="rm_key" style="width: 33%; color: red"/>
-              </a-tooltip>
-            </a-button-group>
-          </a-col>
-          <a-col span="5">
-            <a-button-group v-if="temp_key_item.type === 'string'">
-              <a-tooltip title="以初始文字形式展示">
-                <a-button @click="show_text" style="width: 33%">Text</a-button>
-              </a-tooltip>
-              <a-tooltip title="以Json形式展示">
-                <a-button @click="show_json" style="width: 33%">Json</a-button>
-              </a-tooltip>
-              <a-tooltip title="以json压缩形式展示">
-                <a-button @click="show_zip" style="width: 33%">Zip</a-button>
-              </a-tooltip>
-            </a-button-group>
-            <a-tooltip title="请输入要搜索的Key">
-              <a-input-search v-if="['hash', 'set', 'zset'].includes(temp_key_item.type)"
-                              style="width: 100%" v-model="value_search_key"
-                              placeholder="请输入要搜索的Key" @search="value_search_key_value(true, true)" />
-            </a-tooltip>
-          </a-col>
-          <a-col span="4" style="text-align: right">
-            <a-button type="primary" style="width: 48%" @click="comform_edit" v-if="edit_mode">确认</a-button>
-            <a-button type="error" style="width: 48%" @click="cancel_edit" v-if="edit_mode">取消</a-button>
-          </a-col>
-        </a-row>
+          </a-button-group>
+
+          <span style="position: absolute; right: 0px; top: 0px">
+            <template v-if="temp_key_item.type === 'string'">
+              <a-button-group>
+                <a-tooltip title="以初始文字形式展示">
+                  <a-button @click="show_text" style="width: 33%">Text</a-button>
+                </a-tooltip>
+                <a-tooltip title="以Json形式展示">
+                  <a-button @click="show_json" style="width: 33%">Json</a-button>
+                </a-tooltip>
+                <a-tooltip title="以json压缩形式展示">
+                  <a-button @click="show_zip" style="width: 33%">Zip</a-button>
+                </a-tooltip>
+              </a-button-group>
+              <a-button v-if="!edit_mode" style="margin-left: 4px" @click="edit_value"><a-icon type="edit"/>编辑</a-button>
+              <a-button-group v-else style="margin-left: 4px">
+                <a-button type="primary" @click="comform_edit">确认</a-button>
+                <a-button @click="cancel_edit">取消</a-button>
+              </a-button-group>
+            </template>
+            <template v-if="['hash', 'set', 'zset'].includes(temp_key_item.type)">
+              <a-input-search style="width: 248px" placeholder="请输入要搜索的Key"
+                              v-model="value_search_key"
+                              @search="value_search_key_value(true, true)"
+              />
+            </template>
+            <template v-if="temp_key_item.type !== 'string'">
+              <a-button style="margin-left: 4px" @click="append_key_value_modal=true"><a-icon type="plus"/>添加元素</a-button>
+            </template>
+          </span>
+        </template>
+
+
         <div style="margin-top: 10px"/>
+
         <div style="max-height: 80vh; overflow: auto; background-color: white">
           <div class="spin-content" v-show="present_spin">
             <a-spin :spinning="present_spin"></a-spin>
@@ -130,22 +111,38 @@
               <a-list bordered :dataSource="temp_key_item.key_value">
                 <a-list-item slot="renderItem" slot-scope="item, index">
                   <a-list-item-meta>
-                    <a slot="title" v-if="temp_key_item.type === 'hash' || temp_key_item.type === 'zset'">{{item[0]}}</a>
-                    <div slot="description">
-                      <a-textarea v-if="item[2]" v-model="item[1]" :rows="cal_textarea_lines(item[1])"></a-textarea>
-                      <span v-else>{{item[1]}}</span>
-                    </div>
+                    <template v-if="temp_key_item.type === 'list' || temp_key_item.type === 'set'">
+                      <div slot="title">
+                        <a-textarea v-if="item[2]" v-model="item[1]" :rows="cal_textarea_lines(item[1])"/>
+                        <span v-else>{{item[1]}}</span>
+                      </div>
+                    </template>
+                    <template v-else-if="temp_key_item.type === 'hash'">
+                      <span slot="title">{{item[0]}}</span>
+                      <div slot="description">
+                        <a-textarea v-if="item[2]" v-model="item[1]" :rows="cal_textarea_lines(item[1])"/>
+                        <span v-else>{{item[1]}}</span>
+                      </div>
+                    </template>
+                    <template v-else-if="temp_key_item.type === 'zset'">
+                      <template slot="title">
+                        <a-input v-if="item[2]" v-model="item[1]" style="width: 80px"/>
+                        <span v-else>{{item[1]}}</span>
+                        <a-divider type="vertical"/> {{item[0]}}
+                      </template>
+                    </template>
                   </a-list-item-meta>
                   <div slot="actions">
-                    <div v-if="item[2]">
+                    <template v-if="item[2]">
                       <a @click="conform_edit_item_value(index)">确认</a> <a-divider type="vertical"/>
                       <a @click="cancel_edit_item_value(index)" style="color: lightsalmon">取消</a>
-                    </div>
-                    <div v-else>
-                      <a @click="format_json(item[1])">JSON</a> <a-divider type="vertical"/>
+                    </template>
+                    <template v-else>
+                      <a @click="temp_key_item.type !== 'zset' ? format_json(item[1]) : format_json(item[0])">JSON</a>
+                      <a-divider type="vertical"/>
                       <a @click="edit_item_value(index)">编辑</a> <a-divider type="vertical"/>
                       <a @click="delete_item_value(index)" style="color: lightsalmon">删除</a>
-                    </div>
+                    </template>
                   </div>
                 </a-list-item>
               </a-list>
@@ -165,6 +162,29 @@
       <json-view :data="jsonDataModal" style="margin-top: 20px; overflow: auto; max-height: 72vh"/>
     </a-modal>
     <AddDataModal ref="add_data_modal" :search_keys="search_keys"/>
+    <a-modal v-model="append_key_value_modal" okText="确认" cancelText="取消" @ok="append_key_value_commit" :destroyOnClose="true" width="500px">
+      <span slot="title">插入数据 <a-divider type="vertical"/> {{temp_key_item.name}}</span>
+      <a-input-group v-if="temp_key_item.type==='list'" compact>
+        <span style="font-size: 16px; width: 80px">插入位置: </span>
+        <a-input-number v-model="add_redis_key.pos" placeholder="整数" :precision="0" :min="-1" :max="1000000000" style="width: 360px"/>
+      </a-input-group>
+      <a-input-group v-if="temp_key_item.type==='zset'" style="margin-top: 8px" compact>
+        <span style="font-size: 16px; width: 80px">数据分数: </span>
+        <a-input-number v-model="add_redis_key.score" placeholder="整数, 作为排序依据" :precision="0" :min="0" :max="1000000000" style="width: 360px"/>
+      </a-input-group>
+      <a-input-group v-if="temp_key_item.type==='hash'" style="margin-top: 8px" compact>
+        <span style="font-size: 16px; width: 80px">哈希键值: </span>
+        <a-input v-model="add_redis_key.key" style="width: 360px"/>
+      </a-input-group>
+      <a-input-group style="margin-top: 8px" compact>
+        <span style="font-size: 16px; width: 80px">数据详情: </span>
+        <a-textarea v-model="add_redis_key.value" :rows="6" style="width: 360px"/>
+      </a-input-group>
+      <a-input-group style="margin-top: 8px" compact>
+        <span style="font-size: 16px; width: 80px"></span>
+        <a-checkbox v-model="add_redis_key.zip_json" @change="try_zip_json">尝试压缩JSON文本</a-checkbox>
+      </a-input-group>
+    </a-modal>
   </div>
 </template>
 
@@ -201,6 +221,8 @@ export default {
       edit_mode: false,
       origin_key_item: {name: "", type: 'None', len: 0, ttl: -1, key_value: '暂无内容'},
       temp_key_item: {name: "", type: 'None', len: 0, ttl: -1, key_value: '暂无内容'},
+      append_key_value_modal: false,
+      add_redis_key: {pos: -1, score: 0, key: '', value: '', zip_json: false}
     }
   },
   components: { jsonView, AddDataModal },
@@ -495,12 +517,6 @@ export default {
         }
       }
     },
-    async push_list_value(key, pos, value) {
-      const body = await C.myaxios.get(`data?method=list_ops&ops=push&id=${this.redis_id}&key=${key}&pos=${pos}&value=${value}`)
-      if (body.status === 200 && body.data && body.data.code === 0) {
-        this.log(body.data.data)
-      }
-    },
     async delete_item_value(index) {
       let body = null
       let common = `ops=delete&&id=${this.redis_id}&key=${this.temp_key_item.name}`
@@ -561,6 +577,65 @@ export default {
       this.temp_key_item.key_value[index].splice(2, 1, false)
       this.temp_key_item.key_value[index].splice(1, 1, this.origin_key_item.key_value[index][1])
     },
+    async append_key_value_commit() {
+      let data = this.add_redis_key
+      let body = undefined
+      let success = false
+      let prefix = `data?id=${this.redis_id}&method=`
+      if (this.temp_key_item.type === 'list') {
+        body = await C.myaxios.get(prefix + `list_ops&ops=push&key=${this.temp_key_item.name}&pos=${data.pos}&value=${data.value}`)
+        if (body.status === 200 && body.data && body.data.code === 0 && body.data.data > 0) {
+          success = true
+        } else {
+          body.data.data = '执行失败, 请检查插入位置是否非法或者键已被删除'
+        }
+      } else if (this.temp_key_item.type === 'hash') {
+        body = await C.myaxios.get(prefix + `hash_ops&ops=add&key=${this.temp_key_item.name}&hash_key=${data.key}&value=${data.value}`)
+        this.log(body)
+        if (body.status === 200 && body.data && body.data.code === 0 && body.data.data) {
+          success = true
+        } else {
+          body.data.data = '执行失败, 请检查是否键名冲突'
+        }
+      } else if (this.temp_key_item.type === 'set') {
+        body = await C.myaxios.get(prefix + `set_ops&ops=add&key=${this.temp_key_item.name}&value=${data.value}`)
+        if (body.status === 200 && body.data && body.data.code === 0 && body.data.data > 0) {
+          success = true
+        } else {
+          body.data.data = '执行失败, 请检查是否键名冲突'
+        }
+      } else if (this.temp_key_item.type === 'zset') {
+        body = await C.myaxios.get(prefix + `zset_ops&ops=add&key=${this.temp_key_item.name}&zset_key=${data.value}&value=${data.score}`)
+        if (body.status === 200 && body.data && body.data.code === 0 && body.data.data > 0) {
+          success = true
+        } else {
+          body.data.data = '执行失败, 请检查是否键名冲突'
+        }
+      }
+      if (success) {
+        this.$message.success('执行成功')
+        this.append_key_value_modal = false
+        await this.get_key_value(this.temp_key_item.name, this.temp_key_item.type, '', false)
+        await this.getRedisInfo()
+        await this.search_keys()
+      } else {
+        this.$message.error(body.data.data)
+      }
+    },
+    try_zip_json() {
+      if (this.add_redis_key.zip_json) {
+        let jsonData = U.parse_json(this.add_redis_key.value)
+        if (jsonData !== null) {
+          this.add_redis_key.value_tmp = this.add_redis_key.value
+          this.add_redis_key.value = JSON.stringify(jsonData)
+        } else {
+          this.$message.error('不支持该类型数据的JSON展示')
+          this.add_redis_key.zip_json = false
+        }
+      } else {
+        this.add_redis_key.value = this.add_redis_key.value_tmp
+      }
+    }
   },
   mounted() {
     if (this.$refs.data_view.width <= 900) {

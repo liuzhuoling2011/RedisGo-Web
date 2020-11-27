@@ -26,7 +26,7 @@
       </a-input-group>
       <a-input-group style="margin-top: 8px" compact>
         <span style="font-size: 16px; width: 80px"></span>
-        <a-checkbox v-model="add_redis_key.zip_json">尝试压缩JSON文本</a-checkbox>
+        <a-checkbox v-model="add_redis_key.zip_json" @change="try_zip_json">尝试压缩JSON文本</a-checkbox>
       </a-input-group>
     </a-modal>
   </div>
@@ -35,6 +35,7 @@
 <script>
 import C from "@/config"
 import { mapState, mapMutations, mapActions } from "vuex"
+import U from "@/utils";
 
 export default {
   name: "AddDataModal",
@@ -106,6 +107,20 @@ export default {
         await this.search_keys()
       } else {
         this.$message.error(body.data.data)
+      }
+    },
+    try_zip_json() {
+      if (this.add_redis_key.zip_json) {
+        let jsonData = U.parse_json(this.add_redis_key.value)
+        if (jsonData !== null) {
+          this.add_redis_key.value_tmp = this.add_redis_key.value
+          this.add_redis_key.value = JSON.stringify(jsonData)
+        } else {
+          this.$message.error('不支持该类型数据的JSON展示')
+          this.add_redis_key.zip_json = false
+        }
+      } else {
+        this.add_redis_key.value = this.add_redis_key.value_tmp
       }
     }
   },

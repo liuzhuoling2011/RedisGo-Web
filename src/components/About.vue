@@ -18,9 +18,9 @@ export default {
   name: 'About',
   data() {
     return {
-      version: 'RedisGo Web V2.0.4',
+      version: 'RedisGo Web V2.1.0',
       about_flag: false,
-      pic_src: 'http://qiniu.zoranjojo.top/zoranjojo.jpg'
+      pic_src: 'http://gitee.com/liuzhuoling/pic-go/raw/master/RedisGo/%E6%9C%80%E6%87%82%E6%B8%AF%E9%99%A9%E7%9A%84%E7%A8%8B%E5%BA%8F%E7%8C%BF.jpg'
     }
   },
   methods: {
