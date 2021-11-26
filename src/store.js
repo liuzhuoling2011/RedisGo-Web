@@ -212,7 +212,7 @@ export default new Vuex.Store({
   actions: {
     async initContainers({ commit }) {
       let redis_id = ""
-      let body = await C.myaxios.get("/containers?method=check")
+      let body = await C.myaxios.post("/containers?method=check")
       if (body.status === 200 && body.data && body.data.code === 0) {
         let data = body.data.data
         for (let c in data) {
@@ -230,13 +230,13 @@ export default new Vuex.Store({
       }
     },
     async updateContainerStatus({ commit }) {
-      let body = await C.myaxios.get("/containers?method=check")
+      let body = await C.myaxios.post("/containers?method=check")
       if (body.status === 200 && body.data && body.data.code === 0) {
         commit("setStateData", { type: 'containers', data: body.data.data })
       }
     },
     async getRedisInfo({ state, commit }) {
-      let body = await C.myaxios.get(`/containers?method=info&id=${state.redis_id}`)
+      let body = await C.myaxios.post(`/containers?method=info&id=${state.redis_id}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         commit("setRedisInfo", { info_data: body.data.data })
       } else {
@@ -244,7 +244,7 @@ export default new Vuex.Store({
       }
     },
     async getRedisLogs({ state, commit }) {
-      let body = await C.myaxios.get(`/containers?method=logs&id=${state.redis_id}`)
+      let body = await C.myaxios.post(`/containers?method=logs&id=${state.redis_id}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         commit("setStateData", { type: 'redis_logs', data: body.data.data })
       } else {
@@ -252,7 +252,7 @@ export default new Vuex.Store({
       }
     },
     async getRedisClients({ state, commit }) {
-      let body = await C.myaxios.get(`/containers?method=clients&id=${state.redis_id}`)
+      let body = await C.myaxios.post(`/containers?method=clients&id=${state.redis_id}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         commit("setStateData", { type: 'redis_clients', data: body.data.data })
       } else {
@@ -262,7 +262,7 @@ export default new Vuex.Store({
     async getRedisConfig({ state, commit }) {
       let configData = []
       let comm = 'Config get *'
-      let body = await C.myaxios.get(`/containers?method=execute&id=${state.redis_id}&command=${comm}`)
+      let body = await C.myaxios.post(`/containers?method=execute&id=${state.redis_id}`, {command: comm})
       if (body.status === 200 && body.data && body.data.code === 0) {
         let output = body.data.data
         for (let i = 0; i < output.length; i += 2) {

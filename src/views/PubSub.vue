@@ -154,7 +154,7 @@ export default {
         this.$message.error("请输入Channel再试")
         return
       }
-      let body = await C.myaxios.get(`/containers?method=publish&id=${this.redis_id}&key=${encodeURIComponent(this.pubsub_key)}&msg=${encodeURIComponent(this.pubsub_msg)}`)
+      let body = await C.myaxios.post(`/containers?method=publish&id=${this.redis_id}`, {key: this.pubsub_key, msg: this.pubsub_msg})
       if (body.status === 200 && body.data && body.data.code === 0) {
         let res = body.data
         this.$message.success(`${this.redis_id} => ${res.msg} 发布成功`)

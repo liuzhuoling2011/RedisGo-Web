@@ -65,35 +65,35 @@ export default {
       if (data.ttl === '' || data.ttl === null) { data.ttl = -1 }
       let body = undefined
       let success = false
-      let prefix = `data?id=${this.redis_id}&method=`
+      let common = `id=${this.redis_id}&key=${data.name}&ttl=${data.ttl}`
       if (data.type === 'String') {
-        body = await C.myaxios.get(prefix + `string_ops&ops=set&key=${data.name}&value=${data.value}&ttl=${data.ttl}`)
+        body = await C.myaxios.post(`data/string?method=set&${common}`, {value: data.value})
         if (body.status === 200 && body.data && body.data.code === 0 && body.data.data === 'OK') {
           success = true
         }
       } else if (data.type === 'List') {
-        body = await C.myaxios.get(prefix + `list_ops&ops=new&key=${data.name}&pos=-1&value=${data.value}&ttl=${data.ttl}`)
+        body = await C.myaxios.post(`data/list?method=new&${common}`, {pos: -1, value: data.value})
         if (body.status === 200 && body.data && body.data.code === 0 && body.data.data > 0) {
           success = true
         } else {
           body.data.data = '执行失败, 请检查是否键名冲突'
         }
       } else if (data.type === 'Hash') {
-        body = await C.myaxios.get(prefix + `hash_ops&ops=new&key=${data.name}&hash_key=${data.key}&value=${data.value}&ttl=${data.ttl}`)
+        body = await C.myaxios.post(`data/hash?method=new&${common}`, {hash_key: data.key, value: data.value})
         if (body.status === 200 && body.data && body.data.code === 0 && body.data.data) {
           success = true
         } else {
           body.data.data = '执行失败, 请检查是否键名冲突'
         }
       } else if (data.type === 'Set') {
-        body = await C.myaxios.get(prefix + `set_ops&ops=new&key=${data.name}&set_key=${data.key}&value=${data.value}&ttl=${data.ttl}`)
+        body = await C.myaxios.post(`data/set?method=new&${common}`, {set_key: data.key, value: data.value})
         if (body.status === 200 && body.data && body.data.code === 0 && body.data.data > 0) {
           success = true
         } else {
           body.data.data = '执行失败, 请检查是否键名冲突'
         }
       } else if (data.type === 'ZSet') {
-        body = await C.myaxios.get(prefix + `zset_ops&ops=new&key=${data.name}&zset_key=${data.value}&value=${data.score}&ttl=${data.ttl}`)
+        body = await C.myaxios.post(`data/zset?method=new&${common}`, {zset_key: data.value, zvalue: data.score})
         if (body.status === 200 && body.data && body.data.code === 0 && body.data.data > 0) {
           success = true
         } else {

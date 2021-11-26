@@ -56,11 +56,6 @@
                   <a-menu-item key="about">
                     <a-icon type="info-circle" />关于程序
                   </a-menu-item>
-                  <a-menu-item key="update">
-                    <a-icon type="reload" />
-                    <a-badge v-if="update_flag" status="error">更新通知</a-badge>
-                    <span v-else>更新通知</span>
-                  </a-menu-item>
                   <a-menu-item key="edit">
                     <a-icon type="edit" />连接管理
                   </a-menu-item>
@@ -85,7 +80,6 @@
       class="command-botton"
     />
 
-    <Update ref="update" />
     <About ref="about" />
     <Manage ref="manage" />
     <CommandLine ref="commandline" />
@@ -101,13 +95,12 @@ import Charts from "@/views/Charts";
 import PubSub from "@/views/PubSub";
 
 import About from "@/components/About";
-import Update from "@/components/Update";
 import Manage from "@/components/Manage";
 import CommandLine from "@/components/CommandLine";
 
 export default {
   name: "app",
-  components: {Infos, Data, Charts, PubSub, About, Update, Manage, CommandLine},
+  components: {Infos, Data, Charts, PubSub, About, Manage, CommandLine},
   data() {
     return {
       memu_key: "",
@@ -140,11 +133,9 @@ export default {
     },
     settingClick(value) {
       if (value.key === "about") {
-        this.$refs.about.showAbout();
-      } else if (value.key === "update") {
-        this.$refs.update.showUpdate();
+        this.$refs.about.showAbout()
       } else if (value.key === "edit") {
-        this.$refs.manage.showManage();
+        this.$refs.manage.showManage()
       }
     },
     websocket_get_redis_info() {
@@ -170,7 +161,7 @@ export default {
     this.initWS();
     await this.initContainers();
     // 定时更新redis服务器状态
-    setInterval(this.updateContainerStatus, 30000)
+    // setInterval(this.updateContainerStatus, 30000)
     this.menuClick({ key: "redis_info" });
     try {
       document.body.removeChild(document.getElementById("spinner"));

@@ -34,8 +34,8 @@
         </a-list>
         <div style="text-align: right; margin-top: 10px">
           <a-button-group>
-            <a-button v-if="pre_key_flag" @click="search_keys(false, false)"> <a-icon type="left" /> Prev</a-button>
-            <a-button v-if="next_key_flag" @click="search_keys(false, true)"> Next<a-icon type="right"/></a-button>
+            <a-button v-if="pre_key_flag" @click="search_keys(false, false)" :loading="left_loading"> <a-icon type="left" /> Prev</a-button>
+            <a-button v-if="next_key_flag" @click="search_keys(false, true)" :loading="left_loading"> Next<a-icon type="right"/></a-button>
           </a-button-group>
         </div>
       </a-col>
@@ -49,7 +49,7 @@
 
           <a-input style="width: 136px; margin-left: 8px" placeholder="过期时间" v-model="temp_key_item.ttl" @pressEnter="update_ttl">
             <span slot="addonBefore">TTL</span>
-            <a-icon type="check" slot="suffix" @click="update_ttl"/>
+            <a-icon type="check" slot="suffix" @click="update_ttl(temp_key_item.ttl)"/>
           </a-input>
 
           <a-button-group style="margin-left: 8px">
@@ -57,7 +57,12 @@
               <a-button icon="sync" @click="refresh" style="color: green"/>
             </a-tooltip>
             <a-tooltip title="删除Key">
-              <a-button icon="delete" @click="rm_key" style="color: red"/>
+              <a-popconfirm
+                  title="确认删除吗?" ok-text="确认" cancel-text="取消"
+                  @confirm="rm_key"
+              >
+                  <a-button icon="delete" style="color: red"/>
+              </a-popconfirm>
             </a-tooltip>
           </a-button-group>
 
@@ -141,7 +146,12 @@
                       <a @click="temp_key_item.type !== 'zset' ? format_json(item[1]) : format_json(item[0])">JSON</a>
                       <a-divider type="vertical"/>
                       <a @click="edit_item_value(index)">编辑</a> <a-divider type="vertical"/>
-                      <a @click="delete_item_value(index)" style="color: lightsalmon">删除</a>
+                      <a-popconfirm
+                          title="确认删除吗?" ok-text="确认" cancel-text="取消"
+                          @confirm="delete_item_value(index)"
+                      >
+                        <a style="color: lightsalmon">删除</a>
+                      </a-popconfirm>
                     </template>
                   </div>
                 </a-list-item>
@@ -151,8 +161,8 @@
         </div>
         <div style="text-align: right; margin-top: 10px">
           <a-button-group v-if="temp_key_item.type === 'hash' || temp_key_item.type === 'set'">
-            <a-button v-if="pre_value_page_flag" @click="value_search_key_value(false, false)"> <a-icon type="left" /> Prev</a-button>
-            <a-button v-if="next_value_page_flag" @click="value_search_key_value(false, true)"> Next<a-icon type="right"/></a-button>
+            <a-button v-if="pre_value_page_flag" @click="value_search_key_value(false, false)" :loading="right_loading"> <a-icon type="left" /> Prev</a-button>
+            <a-button v-if="next_value_page_flag" @click="value_search_key_value(false, true)" :loading="right_loading"> Next <a-icon type="right"/></a-button>
           </a-button-group>
           <a-pagination v-if="temp_key_item.type === 'list'" v-model="list_page"  @change="list_page_click" :defaultPageSize="value_count" :total="temp_key_item.len" />
         </div>
@@ -170,7 +180,7 @@
       </a-input-group>
       <a-input-group v-if="temp_key_item.type==='zset'" style="margin-top: 8px" compact>
         <span style="font-size: 16px; width: 80px">数据分数: </span>
-        <a-input-number v-model="add_redis_key.score" placeholder="整数, 作为排序依据" :precision="0" :min="0" :max="1000000000" style="width: 360px"/>
+        <a-input-number v-model="add_redis_key.score" placeholder="作为排序依据" :precision="8" :min="0" :max="1000000000" style="width: 360px"/>
       </a-input-group>
       <a-input-group v-if="temp_key_item.type==='hash'" style="margin-top: 8px" compact>
         <span style="font-size: 16px; width: 80px">哈希键值: </span>
@@ -206,6 +216,8 @@ export default {
       row_width: [7, 12],
       redis_db: 0,
       search_key: "",
+      left_loading: false,
+      right_loading: false,
       key_cursors: [0],
       key_count: 20,
       keys: [],
@@ -272,7 +284,7 @@ export default {
     },
     async change_db(value) {
       this.redis_db = value
-      const body = await C.myaxios.get(`data?method=select_db&id=${this.redis_id}&db=${this.redis_db}`)
+      const body = await C.myaxios.post(`data/common?method=select_db&id=${this.redis_id}&db=${this.redis_db}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         if (body.data.data === "OK") {
           this.$message.success(`成功切换至DB${value}`)
@@ -281,6 +293,7 @@ export default {
       }
     },
     async search_keys(reset=true, search_next=true) {
+      this.left_loading = true
       if (reset) this.key_cursors = [0]
       if (!search_next) {
         this.key_cursors.pop()
@@ -288,7 +301,8 @@ export default {
       }
       let cursor = this.key_cursors[this.key_cursors.length - 1]
       let match = this.search_key !== '' ? `*${this.search_key}*` : '*'
-      const body = await C.myaxios.get(`data?method=get_keys&id=${this.redis_id}&cursor=${cursor}&match=${match}&count=${this.key_count}`)
+      const body = await C.myaxios.post(`data/common?method=get_keys&id=${this.redis_id}`, {cursor, match, count: this.key_count})
+      this.left_loading = false
       if (body.status === 200 && body.data && body.data.code === 0) {
         let data = body.data.data
         this.key_cursors.push(data.cursor)
@@ -305,7 +319,7 @@ export default {
       this.$refs.add_data_modal.show()
     },
     async rm_key() {
-      const body = await C.myaxios.get(`data?method=rm_key&id=${this.redis_id}&key=${this.origin_key_item.name}`)
+      const body = await C.myaxios.post(`data/common?method=rm_key&id=${this.redis_id}&key=${this.origin_key_item.name}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         if (body.data.data === 1) {
           this.$message.success("删除成功")
@@ -338,7 +352,7 @@ export default {
       }
     },
     async rename_key() {
-      const body = await C.myaxios.get(`data?method=rename&id=${this.redis_id}&key=${this.origin_key_item.name}&new_name=${this.temp_key_item.name}`)
+      const body = await C.myaxios.post(`data/common?method=rename&id=${this.redis_id}&key=${this.origin_key_item.name}`, {new_name: this.temp_key_item.name})
       if (body.status === 200 && body.data && body.data.code === 0) {
         if (body.data.data === true || body.data.data === "OK") {
           this.$message.success('重命名成功')
@@ -351,7 +365,7 @@ export default {
       }
     },
     async update_ttl(value) {
-      const body = await C.myaxios.get(`data?method=update_ttl&id=${this.redis_id}&key=${this.origin_key_item.name}&ttl=${value}`)
+      const body = await C.myaxios.post(`data/common?method=update_ttl&id=${this.redis_id}&key=${this.origin_key_item.name}&ttl=${value}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         if (body.data.data === true || body.data.data === "OK") {
           this.$message.success('更新超时时间成功')
@@ -361,7 +375,7 @@ export default {
       }
     },
     async get_ttl() {
-      const body = await C.myaxios.get(`data?method=get_ttl&id=${this.redis_id}&key=${this.origin_key_item.name}`)
+      const body = await C.myaxios.post(`data/common?method=get_ttl&id=${this.redis_id}&key=${this.origin_key_item.name}`)
       if (body.status === 200 && body.data && body.data.code === 0) {
         this.origin_key_item.ttl = parseInt(body.data.data / 1000000000)
         this.temp_key_item.ttl = parseInt(body.data.data / 1000000000)
@@ -384,8 +398,10 @@ export default {
       this.present_mode = 'Text'
     },
     async value_search_key_value(reset=true, search_next=true) {
+      this.right_loading = true
       let match = this.value_search_key === '' ? '*' : `*${this.value_search_key}*`
       await this.get_key_value(this.temp_key_item.name, this.temp_key_item.type, match, reset, search_next)
+      this.right_loading = false
     },
     async list_page_click(page) {
       this.list_page = page
@@ -400,7 +416,7 @@ export default {
           this.value_cursors.pop()
         }
         let cursor = this.value_cursors[this.value_cursors.length - 1]
-        const body = await C.myaxios.get(`data?method=get_key_value&id=${this.redis_id}&key=${name}&type=${type}&cursor=${cursor}&match=${match}&count=${this.value_count}`)
+        const body = await C.myaxios.post(`data/${type}?method=get&id=${this.redis_id}&key=${name}`, {cursor, match, count: this.value_count})
         if (body.status === 200 && body.data && body.data.code === 0) {
           let data = body.data.data
           this.present_spin = false
@@ -425,7 +441,7 @@ export default {
         if (reset) this.list_page = 1
         let start = (this.list_page - 1) * this.value_count
         let end = start + this.value_count - 1
-        const body = await C.myaxios.get(`data?method=get_key_value&id=${this.redis_id}&key=${name}&type=${type}&start=${start}&end=${end}`)
+        const body = await C.myaxios.post(`data/${type}?method=get&id=${this.redis_id}&key=${name}`, {start, end})
         if (body.status === 200 && body.data && body.data.code === 0) {
           this.present_spin = false
           let data = body.data.data
@@ -438,8 +454,8 @@ export default {
           this.origin_key_item.key_value = listData1
           this.temp_key_item.key_value = listData2
         }
-      } else {
-        const body = await C.myaxios.get(`data?method=get_key_value&id=${this.redis_id}&key=${name}&type=${type}`)
+      } else if (type === 'string') {
+        const body = await C.myaxios.post(`data/${type}?method=get&id=${this.redis_id}&key=${name}`)
         if (body.status === 200 && body.data && body.data.code === 0) {
           this.present_spin = false
           this.origin_key_item.key_value = body.data.data === null? [] : body.data.data
@@ -505,7 +521,7 @@ export default {
       this.present_mode = 'Text'
     },
     async set_string_value(value) {
-      const body = await C.myaxios.get(`data?method=string_ops&ops=set&id=${this.redis_id}&key=${this.temp_key_item.name}&value=${value}`)
+      const body = await C.myaxios.post(`data/string?method=set&id=${this.redis_id}&key=${this.temp_key_item.name}`, {value})
       if (body.status === 200 && body.data && body.data.code === 0) {
         if (body.data.data === "OK") {
           this.$message.success("修改成功")
@@ -519,19 +535,19 @@ export default {
     },
     async delete_item_value(index) {
       let body = null
-      let common = `ops=delete&&id=${this.redis_id}&key=${this.temp_key_item.name}`
+      let common = `method=delete&&id=${this.redis_id}&key=${this.temp_key_item.name}`
       if (this.temp_key_item.type === 'list') {
         let list_pos = (this.list_page - 1) * this.value_count + index
-        body = await C.myaxios.get(`data?method=list_ops&pos=${list_pos}&${common}`)
+        body = await C.myaxios.post(`data/list?${common}`, {pos: list_pos})
       } else if (this.temp_key_item.type === 'hash') {
         let hash_key = this.origin_key_item.key_value[index][0]
-        body = await C.myaxios.get(`data?method=hash_ops&hash_key=${hash_key}&${common}`)
+        body = await C.myaxios.post(`data/hash?${common}`, {hash_key})
       } else if (this.temp_key_item.type === 'set') {
         let set_key = this.origin_key_item.key_value[index][1]
-        body = await C.myaxios.get(`data?method=set_ops&set_key=${set_key}&${common}`)
+        body = await C.myaxios.post(`data/set?${common}`, {set_key})
       } else if (this.temp_key_item.type === 'zset') {
         let zset_key = this.origin_key_item.key_value[index][0]
-        body = await C.myaxios.get(`data?method=zset_ops&zset_key=${zset_key}&${common}`)
+        body = await C.myaxios.post(`data/zset?${common}`, {zset_key})
       }
 
       if (body.status === 200 && body.data && body.data.code === 0) {
@@ -546,17 +562,17 @@ export default {
     },
     async conform_edit_item_value(index) {
       let new_value = this.temp_key_item.key_value[index][1]
-      let common = `ops=set&&id=${this.redis_id}&key=${this.temp_key_item.name}&value=${new_value}`
+      let common = `method=set&&id=${this.redis_id}&key=${this.temp_key_item.name}`
       let body = null
       if (this.temp_key_item.type === 'list') {
         let list_pos = (this.list_page - 1) * this.value_count + index
-        body = await C.myaxios.get(`data?method=list_ops&pos=${list_pos}&${common}`)
+        body = await C.myaxios.post(`data/list?${common}`, {pos: list_pos, value: new_value})
       } else if (this.temp_key_item.type === 'hash') {
         let hash_key = this.origin_key_item.key_value[index][0]
-        body = await C.myaxios.get(`data?method=hash_ops&hash_key=${hash_key}&${common}`)
+        body = await C.myaxios.post(`data/hash?${common}`, {hash_key, value: new_value})
       } else if (this.temp_key_item.type === 'set') {
         let set_key = this.origin_key_item.key_value[index][1]
-        body = await C.myaxios.get(`data?method=set_ops&set_key=${set_key}&${common}`)
+        body = await C.myaxios.post(`data/set?${common}`, {set_key, value: new_value})
       } else if (this.temp_key_item.type === 'zset') {
         let zset_key = this.origin_key_item.key_value[index][0]
         let reg=/^[0-9]+.?[0-9]*$/
@@ -564,13 +580,15 @@ export default {
           this.$message.warning('Redis的ZSET类型的值只支持数字')
           return
         }
-        body = await C.myaxios.get(`data?method=zset_ops&zset_key=${zset_key}&${common}`)
+        body = await C.myaxios.post(`data/zset?${common}`, {zset_key, zvalue: parseFloat(new_value)})
       }
 
       if (body.status === 200 && body.data && body.data.code === 0) {
         this.$message.success('修改成功')
         this.temp_key_item.key_value[index].splice(2, 1, false)
         this.origin_key_item.key_value[index].splice(1, 1, this.temp_key_item.key_value[index][1])
+      } else {
+        this.$message.error(body.data.data)
       }
     },
     async cancel_edit_item_value(index) {
@@ -581,33 +599,35 @@ export default {
       let data = this.add_redis_key
       let body = undefined
       let success = false
-      let prefix = `data?id=${this.redis_id}&method=`
+      let common = `id=${this.redis_id}&key=${this.temp_key_item.name}`
       if (this.temp_key_item.type === 'list') {
-        body = await C.myaxios.get(prefix + `list_ops&ops=push&key=${this.temp_key_item.name}&pos=${data.pos}&value=${data.value}`)
+        body = await C.myaxios.post( `data/list?method=push&${common}`, {pos: data.pos, value: data.value})
         if (body.status === 200 && body.data && body.data.code === 0 && body.data.data > 0) {
           success = true
         } else {
           body.data.data = '执行失败, 请检查插入位置是否非法或者键已被删除'
         }
       } else if (this.temp_key_item.type === 'hash') {
-        body = await C.myaxios.get(prefix + `hash_ops&ops=add&key=${this.temp_key_item.name}&hash_key=${data.key}&value=${data.value}`)
-        this.log(body)
+        body = await C.myaxios.post(`data/hash?method=add&${common}`, {hash_key: data.key, value: data.value})
         if (body.status === 200 && body.data && body.data.code === 0 && body.data.data) {
           success = true
         } else {
           body.data.data = '执行失败, 请检查是否键名冲突'
         }
       } else if (this.temp_key_item.type === 'set') {
-        body = await C.myaxios.get(prefix + `set_ops&ops=add&key=${this.temp_key_item.name}&value=${data.value}`)
+        body = await C.myaxios.post(`data/set?method=add&${common}`, {value: data.value})
         if (body.status === 200 && body.data && body.data.code === 0 && body.data.data > 0) {
           success = true
         } else {
           body.data.data = '执行失败, 请检查是否键名冲突'
         }
       } else if (this.temp_key_item.type === 'zset') {
-        body = await C.myaxios.get(prefix + `zset_ops&ops=add&key=${this.temp_key_item.name}&zset_key=${data.value}&value=${data.score}`)
-        if (body.status === 200 && body.data && body.data.code === 0 && body.data.data > 0) {
+        body = await C.myaxios.post(`data/zset?method=add&${common}`, {zset_key: data.value, zvalue: data.score})
+        if (body.status === 200 && body.data && body.data.code === 0) {
           success = true
+          if (body.data.data === 0) {
+            this.$message.success('添加的数据已经存在, 以为你更新数据分数值')
+          }
         } else {
           body.data.data = '执行失败, 请检查是否键名冲突'
         }

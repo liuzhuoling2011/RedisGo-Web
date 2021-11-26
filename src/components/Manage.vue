@@ -11,11 +11,6 @@
       <a-card>
         <template v-for="(item, key) in containers">
           <a-card-grid :key="key" class="gridcard100">
-            <div style="position: absolute; right: 20px; top: 12px">
-              <a @click="edit_container(item)">编辑</a>
-              <a-divider type="vertical" />
-              <a @click="delete_container(item.id)" style="color: lightsalmon">删除</a>
-            </div>
             <a-row>
               <a-col span="2">
                 <a-tooltip v-if="item.status === 0">
@@ -27,12 +22,27 @@
                   <a-icon type="stop" style="font-size: 22px; color: orangered"/>
                 </a-tooltip>
               </a-col>
-              <a-col span="22">
-                名称: <a-tag color="green">{{ item.name }}</a-tag> <a-divider type="vertical" />
-                IP: <a-tag color="blue">{{ item.ip }}</a-tag> <br /><br />
+              <a-col span="18">
+                <a-tooltip :key="item.name" :title="item.name">
+                  名称: <a-tag color="green"> {{item.name.length > 16 ? `${item.name.slice(0, 16)}...` : item.name}}</a-tag>
+                </a-tooltip>
+                <a-divider type="vertical" />
+                <a-tooltip :key="item.ip" :title="item.ip">
+                  IP: <a-tag color="blue"> {{item.ip.length > 16 ? `${item.ip.slice(0, 16)}...` : item.ip}}</a-tag>
+                </a-tooltip> <br />
                 端口: {{ item.port }} <a-divider type="vertical" />
-                DB: {{ item.db }} <a-divider type="vertical" />
-                密码: {{ item.password }}
+                DB: {{ item.db }}
+<!--                <a-divider type="vertical" />密码: {{ item.password }}-->
+              </a-col>
+              <a-col span="4">
+                <a @click="edit_container(item)">编辑</a>
+                <a-divider type="vertical" />
+                <a-popconfirm
+                    title="确认删除吗?" ok-text="确认" cancel-text="取消"
+                    @confirm="delete_container(item.id)"
+                >
+                  <a style="color: lightsalmon">删除</a>
+                </a-popconfirm>
               </a-col>
             </a-row>
           </a-card-grid>
@@ -59,7 +69,8 @@
       >
         <a-icon slot="prefix" type="user" />
       </a-input>
-      <a-input placeholder="密码" size="large" allowClear
+      <a-input size="large" allowClear
+        :placeholder="children_drawl_name !== '修改连接' ? '密码': '若不修改, 请留空'"
         v-model="container_tmp.password"
         style="margin-top: 10px"
         @pressEnter="press_enter"
@@ -76,14 +87,14 @@
       </a-input>
       <a-input placeholder="DB" size="large" allowClear
         v-model="container_tmp.db"
+        :disabled="children_drawl_name === '修改连接'"
         style="margin-top: 10px"
         @pressEnter="press_enter"
       >
         <a-icon slot="prefix" type="hdd" />
       </a-input>
-      <a-button type="primary" style="margin-top: 10px"
+      <a-button type="primary" style="margin-top: 10px" :loading="visible_children_loading"
         @click="press_enter"
-        :loading="visible_children_loading"
       >确认
       </a-button>
     </a-drawer>
@@ -132,7 +143,7 @@ export default {
       this.container_tmp.db = item.db
     },
     async delete_container(id) {
-      let body = await C.myaxios.get("/containers?method=delete&id=" + id)
+      let body = await C.myaxios.post("/containers?method=delete&id=" + id)
       if (body.status === 200 && body.data && body.data.code === 0) {
         this.$message.success("成功删除Redis连接")
         this.deleteContainer({ id: id })
@@ -146,11 +157,12 @@ export default {
     async upload_add() {
       this.visible_children_loading = true
       this.update_info(true)
-      let redis_conf =
-        `ip=${this.container_tmp.ip}&port=${this.container_tmp.port}&db=${this.container_tmp.db}` +
-        `&name=${encodeURIComponent(this.container_tmp.name)}` +
-        `&password=${encodeURIComponent(this.container_tmp.password)}`
-      let body = await C.myaxios.get(`/containers?method=add&${redis_conf}`)
+      let redis_conf = {
+        name: this.container_tmp.name, ip: this.container_tmp.ip,
+        port: parseInt(this.container_tmp.port),
+        db: parseInt(this.container_tmp.db), password: this.container_tmp.password,
+      }
+      let body = await C.myaxios.post(`/containers?method=add`, redis_conf)
       this.visible_children_loading = false
       if (body.status === 200 && body.data && body.data.code === 0) {
         this.setContainer({ id: this.container_tmp.id, container: body.data.data })
@@ -169,11 +181,12 @@ export default {
     async upload_edit() {
       this.visible_children_loading = true
       this.update_info(true)
-      let redis_conf =
-        `ip=${this.container_tmp.ip}&port=${this.container_tmp.port}&db=${this.container_tmp.db}` +
-        `&name=${encodeURIComponent(this.container_tmp.name)}` +
-        `&password=${encodeURIComponent(this.container_tmp.password)}`
-      let body = await C.myaxios.get(`containers?method=edit&${redis_conf}`)
+      let redis_conf = {
+        name: this.container_tmp.name, ip: this.container_tmp.ip,
+        port: parseInt(this.container_tmp.port),
+        db: parseInt(this.container_tmp.db), password: this.container_tmp.password
+      }
+      let body = await C.myaxios.post(`containers?method=edit`, redis_conf)
       this.visible_children_loading = false
       if (body.status === 200 && body.data && body.data.code === 0) {
         this.setContainer({
@@ -202,5 +215,6 @@ export default {
   width: 100%;
   text-align: left;
   position: relative;
+  padding: 18px;
 }
 </style>

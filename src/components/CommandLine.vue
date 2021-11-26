@@ -63,7 +63,7 @@ export default {
     },
     async execute_command() {
       if (this.redis_command === '') return
-      const body = await C.myaxios.get(`containers?method=execute&id=${this.redis_id}&command=${this.redis_command}`)
+      const body = await C.myaxios.post(`containers?method=execute&id=${this.redis_id}`, {command: this.redis_command})
       if (body.status === 200 && body.data && body.data.code === 0) {
         let find = this.redis_command_list.findIndex(e => e === this.redis_command)
         if (find >= 0) {
