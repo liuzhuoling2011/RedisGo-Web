@@ -11,11 +11,14 @@
               <a-tag style="position: absolute; right: 24px;" color="red" @click="delete_pubsub_output(-1)">清空信息</a-tag>
             </div>
             <a-list-item slot="renderItem" slot-scope="item, index">
-              <a-list-item-meta :description="item[1]">
+              <a-list-item-meta>
                 <a slot="title">接收通道: {{ item[0] }}</a>
+                <span slot="description"> {{item[1].length > 512 ? `${item[1].slice(0, 512)}...` : item[1]}}</span>
               </a-list-item-meta>
               <div slot="actions">
-                <a @click="format_json(item[1])">JSON</a>
+                <a @click="format_json(item[1])">Json</a>
+                <a-divider type="vertical" />
+                <a @click="show_origin_text(item[1])">Text</a>
                 <a-divider type="vertical" />
                 <a @click="delete_pubsub_output(index)" style="color: lightsalmon">删除</a>
               </div>
@@ -84,6 +87,15 @@
     >
       <json-view :data="jsonData" style="margin-top: 20px; overflow: auto; max-height: 72vh"/>
     </a-modal>
+    <a-modal width="50vw"
+       v-model="showText"
+       :footer="null"
+       :destroyOnClose="true"
+    >
+      <div style="margin-top: 20px; overflow: auto; max-height: 72vh">
+        {{textData}}
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -103,7 +115,9 @@ export default {
       pubsub_msg_placeholder:
         '需要发布的信息, 可以直接放上可读的Json, 例如:\n{\n  "ABC": [\n    "123456",\n    "234567",\n    "345678",\n  ],\n  "DEF": ["567890"]\n}',
       jsonData: "",
-      showJson: false
+      showJson: false,
+      textData: "",
+      showText: false
     };
   },
   components: { jsonView },
@@ -135,8 +149,12 @@ export default {
         this.jsonData = jsonData
         this.showJson = true
       } else {
-        this.$message.error("不支持该类型数据的JSON展示")
+        this.$message.error("不支持该类型数据的Json展示")
       }
+    },
+    show_origin_text(text_data) {
+      this.textData = text_data
+      this.showText = true
     },
     delete_pubsub_output(index) {
       if (index === -1) {

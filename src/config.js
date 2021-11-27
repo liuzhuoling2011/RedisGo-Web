@@ -1,13 +1,11 @@
 import axios from "axios";
 
 const wsProtocol = location.protocol === 'http:' ? 'ws:' : 'wss:'
-let server = '47.52.140.130:8080'
 let local = '127.0.0.1:59299/redisgo/v3'
 
 let config = {
     'local': { base_url: `${location.protocol}//${local}`, ws_url: `${wsProtocol}//${local}/ws`},
-    'dev': { base_url: `${location.protocol}//${server}`, ws_url: `${wsProtocol}//${server}/ws`},
-    'prod': { base_url: location.origin, ws_url: `${wsProtocol}//${location.host}/ws`},
+    'prod': { base_url: `${location.origin}/redisgo/v3`, ws_url: `${wsProtocol}//${location.host}/redisgo/v3/ws`},
 }
 
 let env = 'local'

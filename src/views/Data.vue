@@ -143,7 +143,7 @@
                       <a @click="cancel_edit_item_value(index)" style="color: lightsalmon">取消</a>
                     </template>
                     <template v-else>
-                      <a @click="temp_key_item.type !== 'zset' ? format_json(item[1]) : format_json(item[0])">JSON</a>
+                      <a @click="temp_key_item.type !== 'zset' ? format_json(item[1]) : format_json(item[0])">Json</a>
                       <a-divider type="vertical"/>
                       <a @click="edit_item_value(index)">编辑</a> <a-divider type="vertical"/>
                       <a-popconfirm
@@ -192,7 +192,7 @@
       </a-input-group>
       <a-input-group style="margin-top: 8px" compact>
         <span style="font-size: 16px; width: 80px"></span>
-        <a-checkbox v-model="add_redis_key.zip_json" @change="try_zip_json">尝试压缩JSON文本</a-checkbox>
+        <a-checkbox v-model="add_redis_key.zip_json" @change="try_zip_json">尝试压缩Json文本</a-checkbox>
       </a-input-group>
     </a-modal>
   </div>
@@ -469,7 +469,7 @@ export default {
         this.jsonDataModal = jsonData
         this.showJsonModal = true
       } else {
-        this.$message.error('不支持该类型数据的JSON展示')
+        this.$message.error('不支持该类型数据的Json展示')
       }
     },
     show_json() {
@@ -480,7 +480,7 @@ export default {
             this.temp_key_item.key_value = jsonData
             this.present_mode = 'Json'
           } else {
-            this.$message.error('不支持该类型数据的JSON展示')
+            this.$message.error('不支持该类型数据的Json展示')
             return
           }
         }
@@ -495,7 +495,7 @@ export default {
             this.temp_key_item.key_value = JSON.stringify(jsonData, null, 4)
             this.present_mode = 'Json'
           } else {
-            this.$message.error('不支持该类型数据的JSON展示')
+            this.$message.error('不支持该类型数据的Json展示')
           }
         }
       }
@@ -511,7 +511,7 @@ export default {
           this.temp_key_item.key_value = JSON.stringify(jsonData)
           this.present_mode = 'Zip'
         } else {
-          this.$message.error('不支持该类型数据的JSON展示')
+          this.$message.error('不支持该类型数据的Json展示')
         }
       }
     },
@@ -649,7 +649,7 @@ export default {
           this.add_redis_key.value_tmp = this.add_redis_key.value
           this.add_redis_key.value = JSON.stringify(jsonData)
         } else {
-          this.$message.error('不支持该类型数据的JSON展示')
+          this.$message.error('不支持该类型数据的Json展示')
           this.add_redis_key.zip_json = false
         }
       } else {
