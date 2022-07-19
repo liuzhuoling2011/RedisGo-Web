@@ -9,7 +9,7 @@
           </template>
         </a-table>
         <a-divider>客户端列表</a-divider>
-        <a-table rowKey="id" :columns="clients_columns" :loading="clients_loading" :dataSource="redis_clients" :pagination="{ pageSize: 50 }" :scroll="{ y: 258 }" >
+        <a-table rowKey="id" :columns="clients_columns" :loading="clients_loading" :dataSource="redis_clients" :pagination="{ pageSize: 50 }" :scroll="{ y: 258,x: 950 }" >
           <template slot="time" slot-scope="text">
             {{formatSeconds(text)}}
           </template>
