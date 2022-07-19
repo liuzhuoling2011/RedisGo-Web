@@ -2,7 +2,7 @@
   <div ref="data_view">
     <a-row type="flex" justify="center">
       <a-col span="7">
-        <a-input-group compact>
+        <a-input-group compact style="display: flex">
           <a-select v-if="info_data !== undefined" style="width: 110px" :value="redis_db" @change="change_db">
             <a-select-option v-for="item in dbs" :value="item.value" :key="item.value">{{item.label}}</a-select-option>
           </a-select>
@@ -10,22 +10,22 @@
             v-model="search_key"
             @search="search_keys(true, true)"
           />
+          <a-button icon="plus" @click="add_key_click">添加</a-button>
         </a-input-group>
-        <a-button style="position: absolute; right: 0px; top: 0px" icon="plus" @click="add_key_click">添加</a-button>
 
         <div style="margin-top: 10px"/>
 
         <a-list bordered :dataSource="keys" style="max-height: 80vh; overflow: auto; background-color: white">
-          <a-list-item slot="renderItem" slot-scope="item" @click="click_item(item)">
-            <a-list-item-meta>
+          <a-list-item slot="renderItem" slot-scope="item" @click="click_item(item)" class="rs-data-menu" style="overflow: hidden; display: flex; align-items: center">
+            <a-list-item-meta style="margin-left: 10px">
               <a slot="title">
-                <a-tooltip :key="item['name']" :title="item['type']+' 类型: '+item['name']">
+                <a-tooltip :key="item['name']" :title="item['type']+' 类型: '+item['name']" style="display: flex">
                   <a-tag v-if="item['type']==='string'" class="tagstyle" color="green">String</a-tag>
                   <a-tag v-if="item['type']==='list'" class="tagstyle" color="blue">List</a-tag>
                   <a-tag v-if="item['type']==='set'" class="tagstyle" color="pink">Set</a-tag>
                   <a-tag v-if="item['type']==='zset'" class="tagstyle" color="red">ZSet</a-tag>
                   <a-tag v-if="item['type']==='hash'" class="tagstyle" color="cyan">Hash</a-tag>
-                  {{item['name'].length > 23 ? `${item['name'].slice(0, 23)}...` : item['name']}}
+                  <div style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">{{item['name'].length > 23 ? `${item['name'].slice(0, 23)}...` : item['name']}}</div>
                 </a-tooltip>
               </a>
             </a-list-item-meta>
@@ -42,59 +42,61 @@
 
       <a-col offset="1" :md="16" :xl="16" :xxl="12">
         <template v-if="temp_key_item.type !== 'None'" >
-          <a-input style="width: 268px" placeholder="名称" v-model="temp_key_item.name" @pressEnter="rename_key">
-            <span slot="addonBefore">{{temp_key_item.type.toUpperCase()}}</span>
-            <a-icon type="check" slot="suffix" @click="rename_key"/>
-          </a-input>
+          <div style="display: flex;align-items: center;">
+            <a-input style="width: 268px" placeholder="名称" v-model="temp_key_item.name" @pressEnter="rename_key">
+              <span slot="addonBefore">{{temp_key_item.type.toUpperCase()}}</span>
+              <a-icon type="check" slot="suffix" @click="rename_key"/>
+            </a-input>
 
-          <a-input style="width: 136px; margin-left: 8px" placeholder="过期时间" v-model="temp_key_item.ttl" @pressEnter="update_ttl">
-            <span slot="addonBefore">TTL</span>
-            <a-icon type="check" slot="suffix" @click="update_ttl(temp_key_item.ttl)"/>
-          </a-input>
+            <a-input style="width: 136px; margin-left: 8px" placeholder="过期时间" v-model="temp_key_item.ttl" @pressEnter="update_ttl">
+              <span slot="addonBefore">TTL</span>
+              <a-icon type="check" slot="suffix" @click="update_ttl(temp_key_item.ttl)"/>
+            </a-input>
 
-          <a-button-group style="margin-left: 8px">
-            <a-tooltip title="刷新">
-              <a-button icon="sync" @click="refresh" style="color: green"/>
-            </a-tooltip>
-            <a-tooltip title="删除Key">
-              <a-popconfirm
-                  title="确认删除吗?" ok-text="确认" cancel-text="取消"
-                  @confirm="rm_key"
-              >
-                  <a-button icon="delete" style="color: red"/>
-              </a-popconfirm>
-            </a-tooltip>
-          </a-button-group>
+            <a-button-group style="margin-left: 8px;margin-right: 8px;">
+              <a-tooltip title="刷新">
+                <a-button icon="sync" @click="refresh" style="color: green"/>
+              </a-tooltip>
+              <a-tooltip title="删除Key">
+                <a-popconfirm
+                    title="确认删除吗?" ok-text="确认" cancel-text="取消"
+                    @confirm="rm_key"
+                >
+                    <a-button icon="delete" style="color: red"/>
+                </a-popconfirm>
+              </a-tooltip>
+            </a-button-group>
 
-          <span style="position: absolute; right: 0px; top: 0px">
-            <template v-if="temp_key_item.type === 'string'">
-              <a-button-group>
-                <a-tooltip title="以初始文字形式展示">
-                  <a-button @click="show_text" style="width: 33%">Text</a-button>
-                </a-tooltip>
-                <a-tooltip title="以Json形式展示">
-                  <a-button @click="show_json" style="width: 33%">Json</a-button>
-                </a-tooltip>
-                <a-tooltip title="以json压缩形式展示">
-                  <a-button @click="show_zip" style="width: 33%">Zip</a-button>
-                </a-tooltip>
-              </a-button-group>
-              <a-button v-if="!edit_mode" style="margin-left: 4px" @click="edit_value"><a-icon type="edit"/>编辑</a-button>
-              <a-button-group v-else style="margin-left: 4px">
-                <a-button type="primary" @click="comform_edit">确认</a-button>
-                <a-button @click="cancel_edit">取消</a-button>
-              </a-button-group>
-            </template>
-            <template v-if="['hash', 'set', 'zset'].includes(temp_key_item.type)">
-              <a-input-search style="width: 248px" placeholder="请输入要搜索的Key"
-                              v-model="value_search_key"
-                              @search="value_search_key_value(true, true)"
-              />
-            </template>
-            <template v-if="temp_key_item.type !== 'string'">
-              <a-button style="margin-left: 4px" @click="append_key_value_modal=true"><a-icon type="plus"/>添加元素</a-button>
-            </template>
-          </span>
+            <span style="display: flex;align-items: center;margin-left: auto;">
+              <template v-if="temp_key_item.type === 'string'">
+                <a-button-group>
+                  <a-tooltip title="以初始文字形式展示">
+                    <a-button @click="show_text" style="width: 33%">Text</a-button>
+                  </a-tooltip>
+                  <a-tooltip title="以Json形式展示">
+                    <a-button @click="show_json" style="width: 33%">Json</a-button>
+                  </a-tooltip>
+                  <a-tooltip title="以json压缩形式展示">
+                    <a-button @click="show_zip" style="width: 33%">Zip</a-button>
+                  </a-tooltip>
+                </a-button-group>
+                <a-button v-if="!edit_mode" style="margin-left: 4px" @click="edit_value"><a-icon type="edit"/>编辑</a-button>
+                <a-button-group v-else style="margin-left: 4px">
+                  <a-button type="primary" @click="comform_edit">确认</a-button>
+                  <a-button @click="cancel_edit">取消</a-button>
+                </a-button-group>
+              </template>
+              <template v-if="['hash', 'set', 'zset'].includes(temp_key_item.type)">
+                <a-input-search style="flex: 1" placeholder="请输入要搜索的Key"
+                                v-model="value_search_key"
+                                @search="value_search_key_value(true, true)"
+                />
+              </template>
+              <template v-if="temp_key_item.type !== 'string'">
+                <a-button style="margin-left: 4px" @click="append_key_value_modal=true"><a-icon type="plus"/>添加元素</a-button>
+              </template>
+            </span>
+          </div>
         </template>
 
 
@@ -383,18 +385,35 @@ export default {
     },
     async click_item(item) {
       this.json_view_flag = false
-      this.origin_key_item.ttl = parseInt(item.ttl / 1000000000)
-      this.origin_key_item.type = item.type
-      this.origin_key_item.name = item.name
-      this.origin_key_item.len = item.len
+      const [value1,value2] = await this.get_retyrn_key_value(item.name, item.type)
+      this.origin_key_item = {
+        ttl: parseInt(item.ttl / 1000000000),
+        type: item.type,
+        name: item.name,
+        len: item.len,
+        key_value: value1
+      }
 
-      this.temp_key_item.ttl = parseInt(item.ttl / 1000000000)
-      this.temp_key_item.type = item.type
-      this.temp_key_item.name = item.name
-      this.temp_key_item.len = item.len
+      this.temp_key_item = {
+        ttl: parseInt(item.ttl / 1000000000),
+        type: item.type,
+        name: item.name,
+        len: item.len,
+        key_value: value2
+      }
+
+      // this.origin_key_item.ttl = parseInt(item.ttl / 1000000000)
+      // this.origin_key_item.type = item.type
+      // this.origin_key_item.name = item.name
+      // this.origin_key_item.len = item.len
+
+      // this.temp_key_item.ttl = parseInt(item.ttl / 1000000000)
+      // this.temp_key_item.type = item.type
+      // this.temp_key_item.name = item.name
+      // this.temp_key_item.len = item.len
 
       this.value_search_key = ""
-      await this.get_key_value(item.name, item.type)
+      // await this.get_key_value(item.name, item.type)
       this.present_mode = 'Text'
     },
     async value_search_key_value(reset=true, search_next=true) {
@@ -407,6 +426,67 @@ export default {
       this.list_page = page
       await this.get_key_value(this.temp_key_item.name, this.temp_key_item.type, '', false)
     },
+    async get_retyrn_key_value(name, type, match='*', reset=true, search_next=true) {
+      this.present_spin = true
+      if (type === 'hash' || type === 'set' || type === 'zset') {
+        if (reset) this.value_cursors = [0]
+        if (!search_next) {
+          this.value_cursors.pop()
+          this.value_cursors.pop()
+        }
+        let cursor = this.value_cursors[this.value_cursors.length - 1]
+        const body = await C.myaxios.post(`data/${type}?method=get&id=${this.redis_id}&key=${name}`, {cursor, match, count: this.value_count})
+        if (body.status === 200 && body.data && body.data.code === 0) {
+          this.present_spin = false
+          let data = body.data.data
+          if(data.keys){
+            this.value_cursors.push(data.cursor)
+            let valueData1 = []
+            let valueData2 = []
+            if (type === 'hash' || type === 'zset') {
+              for (let i = 0; i < data.keys.length - 1; i += 2) {
+                valueData1.push([data.keys[i], data.keys[i+1], false])
+                valueData2.push([data.keys[i], data.keys[i+1], false])
+              }
+            } else if (type === 'set') {
+              for (let i = 0; i < data.keys.length; i += 1) {
+                valueData1.push(['', data.keys[i], false])
+                valueData2.push(['', data.keys[i], false])
+              }
+            }
+            return [valueData1,valueData2]
+          }else{
+            return [[],[]]
+          }
+        }
+      } else if (type === 'list') {
+        if (reset) this.list_page = 1
+        let start = (this.list_page - 1) * this.value_count
+        let end = start + this.value_count - 1
+        const body = await C.myaxios.post(`data/${type}?method=get&id=${this.redis_id}&key=${name}`, {start, end})
+        if (body.status === 200 && body.data && body.data.code === 0) {
+          this.present_spin = false
+          let data = body.data.data
+           if(data.keys){
+             let listData1 = []
+             let listData2 = []
+             for (let i = 0; i < data.length; i += 1) {
+               listData1.push(['', data[i], false])
+               listData2.push(['', data[i], false])
+             }
+             return [listData1,listData2]
+           }else{
+             return [[],[]]
+           }
+        }
+      } else if (type === 'string') {
+        const body = await C.myaxios.post(`data/${type}?method=get&id=${this.redis_id}&key=${name}`)
+        if (body.status === 200 && body.data && body.data.code === 0) {
+          this.present_spin = false
+          return [body.data.data || [], body.data.data || []]
+        }
+      }
+    },
     async get_key_value(name, type, match='*', reset=true, search_next=true) {
       this.present_spin = true
       if (type === 'hash' || type === 'set' || type === 'zset') {
@@ -418,24 +498,29 @@ export default {
         let cursor = this.value_cursors[this.value_cursors.length - 1]
         const body = await C.myaxios.post(`data/${type}?method=get&id=${this.redis_id}&key=${name}`, {cursor, match, count: this.value_count})
         if (body.status === 200 && body.data && body.data.code === 0) {
-          let data = body.data.data
           this.present_spin = false
-          this.value_cursors.push(data.cursor)
-          let valueData1 = []
-          let valueData2 = []
-          if (type === 'hash' || type === 'zset') {
-            for (let i = 0; i < data.keys.length - 1; i += 2) {
-              valueData1.push([data.keys[i], data.keys[i+1], false])
-              valueData2.push([data.keys[i], data.keys[i+1], false])
+          let data = body.data.data
+          if(data.keys){
+            this.value_cursors.push(data.cursor)
+            let valueData1 = []
+            let valueData2 = []
+            if (type === 'hash' || type === 'zset') {
+              for (let i = 0; i < data.keys.length - 1; i += 2) {
+                valueData1.push([data.keys[i], data.keys[i+1], false])
+                valueData2.push([data.keys[i], data.keys[i+1], false])
+              }
+            } else if (type === 'set') {
+              for (let i = 0; i < data.keys.length; i += 1) {
+                valueData1.push(['', data.keys[i], false])
+                valueData2.push(['', data.keys[i], false])
+              }
             }
-          } else if (type === 'set') {
-            for (let i = 0; i < data.keys.length; i += 1) {
-              valueData1.push(['', data.keys[i], false])
-              valueData2.push(['', data.keys[i], false])
-            }
+            this.origin_key_item.key_value = valueData1
+            this.temp_key_item.key_value = valueData2
+          }else{
+            this.origin_key_item.key_value = []
+            this.temp_key_item.key_value = []
           }
-          this.origin_key_item.key_value = valueData1
-          this.temp_key_item.key_value = valueData2
         }
       } else if (type === 'list') {
         if (reset) this.list_page = 1
@@ -445,14 +530,19 @@ export default {
         if (body.status === 200 && body.data && body.data.code === 0) {
           this.present_spin = false
           let data = body.data.data
-          let listData1 = []
-          let listData2 = []
-          for (let i = 0; i < data.length; i += 1) {
-            listData1.push(['', data[i], false])
-            listData2.push(['', data[i], false])
-          }
-          this.origin_key_item.key_value = listData1
-          this.temp_key_item.key_value = listData2
+           if(data.keys){
+             let listData1 = []
+             let listData2 = []
+             for (let i = 0; i < data.length; i += 1) {
+               listData1.push(['', data[i], false])
+               listData2.push(['', data[i], false])
+             }
+             this.origin_key_item.key_value = listData1
+             this.temp_key_item.key_value = listData2
+           }else{
+             this.origin_key_item.key_value = []
+             this.temp_key_item.key_value = []
+           }
         }
       } else if (type === 'string') {
         const body = await C.myaxios.post(`data/${type}?method=get&id=${this.redis_id}&key=${name}`)
@@ -668,7 +758,6 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .tagstyle {
-  width: 55px;
   text-align: center;
 }
 .spin-content {
@@ -688,4 +777,24 @@ pre {padding: 5px; margin: 5px; white-space: pre-wrap; word-wrap: break-word;}
 .boolean { color: blue; }
 .null { color: magenta; }
 .key { color: red; }
+.rs-data-menu .ant-list-item-meta {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.rs-data-menu .ant-list-item-meta .ant-list-item-meta-content {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rs-data-menu /deep/ .ant-list-item-action {
+  margin-left: 10px;
+}
+.rs-data-menu /deep/ ul li {
+  padding: 0;
+}
+
+.rs-data-menu h4 {
+  margin-bottom: 0px;
+}
 </style>
